@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FB Comment Automation</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+  <div class="app">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="logo">
+        <h2>🤖 FB Automator</h2>
+      </div>
+
+      <nav class="nav">
+        <a href="#" class="nav-item active" data-page="dashboard">
+          <span class="icon">📊</span>
+          Dashboard
+        </a>
+        <a href="#" class="nav-item" data-page="accounts">
+          <span class="icon">👤</span>
+          Accounts
+        </a>
+        <a href="#" class="nav-item" data-page="posts">
+          <span class="icon">👥</span>
+          Posts
+        </a>
+        <a href="#" class="nav-item" data-page="templates">
+          <span class="icon">💬</span>
+          Templates
+        </a>
+        <a href="#" class="nav-item" data-page="activity">
+          <span class="icon">📝</span>
+          Activity
+        </a>
+        <a href="#" class="nav-item" data-page="live-logs">
+          <span class="icon">🔴</span>
+          Live Logs
+        </a>
+        <a href="#" class="nav-item" data-page="settings">
+          <span class="icon">⚙️</span>
+          Settings
+        </a>
+        <a href="#" class="nav-item" data-page="user-guide">
+          <span class="icon">📖</span>
+          User Guide
+        </a>
+      </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+      <!-- Header -->
+      <div class="header">
+        <div class="automation-controls">
+          <button id="startBtn" class="btn btn-success">
+            <span class="icon">▶️</span> Start Automation
+          </button>
+          <button id="stopBtn" class="btn btn-danger" disabled>
+            <span class="icon">⏸️</span> Stop Automation
+          </button>
+          <div class="status-badge" id="statusBadge">
+            <span class="dot"></span>
+            <span id="statusText">Stopped</span>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <!-- License Info -->
+          <div class="license-info" id="licenseInfo">
+            <div class="license-item">
+              <span class="license-label">📅 License Expires:</span>
+              <span class="license-value" id="licenseExpiry">Loading...</span>
+            </div>
+            <div class="license-item">
+              <span class="license-label">⏰ Days Remaining:</span>
+              <span class="license-value" id="licenseDays">-</span>
+            </div>
+          </div>
+
+          <!-- Update Check Button -->
+          <button id="checkUpdateBtn" class="btn btn-info btn-sm">
+            <span class="icon">🔄</span> Check Updates
+          </button>
+
+          <!-- Telegram Contact -->
+          <a href="https://t.me/Minhazulruhan1" target="_blank" class="btn btn-telegram btn-sm">
+            <span class="icon">💬</span> Contact Support
+          </a>
+        </div>
+      </div>
+
+      <!-- Pages -->
+      <div class="content">
+        <!-- Dashboard Page -->
+        <div id="dashboard-page" class="page active">
+          <h1>Dashboard</h1>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-icon">💬</div>
+              <div class="stat-info">
+                <div class="stat-label">Total Comments</div>
+                <div class="stat-value" id="totalComments">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">❤️</div>
+              <div class="stat-info">
+                <div class="stat-label">Total Reacts</div>
+                <div class="stat-value" id="totalReacts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">👤</div>
+              <div class="stat-info">
+                <div class="stat-label">Total Accounts</div>
+                <div class="stat-value" id="totalAccounts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">✅</div>
+              <div class="stat-info">
+                <div class="stat-label">Active Accounts</div>
+                <div class="stat-value" id="activeAccounts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">⏸️</div>
+              <div class="stat-info">
+                <div class="stat-label">Disabled Accounts</div>
+                <div class="stat-value" id="disabledAccounts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">🚫</div>
+              <div class="stat-info">
+                <div class="stat-label">Banned Accounts</div>
+                <div class="stat-value" id="bannedAccounts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">👥</div>
+              <div class="stat-info">
+                <div class="stat-label">Total Posts</div>
+                <div class="stat-value" id="totalPosts">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">⏳</div>
+              <div class="stat-info">
+                <div class="stat-label">Pending Comments</div>
+                <div class="stat-value" id="pendingComments">0</div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-icon">❌</div>
+              <div class="stat-info">
+                <div class="stat-label">Declined Comments</div>
+                <div class="stat-value" id="declinedComments">0</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="logs-section">
+            <div class="section-header">
+              <h2>Live Logs</h2>
+              <button id="clearLogsBtn" class="btn btn-sm">Clear</button>
+            </div>
+            <div class="logs-container" id="logsContainer">
+              <div class="log-item info">
+                <span class="log-time">00:00:00</span>
+                <span class="log-message">System ready. Click Start to begin automation.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Accounts Page -->
+        <div id="accounts-page" class="page">
+          <h1>Account Management</h1>
+
+          <button id="addAccountBtn" class="btn btn-primary mb-3">
+            <span class="icon">➕</span> Add Account
+          </button>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Comments Today</th>
+                  <th>Total Comments</th>
+                  <th>Total Reacts</th>
+                  <th>Last Used</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="accountsTableBody">
+                <tr>
+                  <td colspan="7" class="text-center">No accounts added yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Posts Page -->
+        <div id="posts-page" class="page">
+          <h1>Post Management</h1>
+
+          <div class="btn-group mb-3">
+            <button id="addPostBtn" class="btn btn-primary">
+              <span class="icon">➕</span> Add Post
+            </button>
+            <button id="importPostsBtn" class="btn btn-secondary">
+              <span class="icon">📋</span> Import Multiple
+            </button>
+            <button id="deleteSelectedBtn" class="btn btn-danger" style="display: none;">
+              <span class="icon">🗑️</span> Delete Selected (<span id="selectedCount">0</span>)
+            </button>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" id="selectAllPosts" title="Select All">
+                  </th>
+                  <th>Assigned Account</th>
+                  <th>Post URL</th>
+                  <th>Title</th>
+                  <th>Total Comments</th>
+                  <th>Last Visited</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="postsTableBody">
+                <tr>
+                  <td colspan="7" class="text-center">No posts added yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Templates Page -->
+        <div id="templates-page" class="page">
+          <h1>Comment Templates</h1>
+
+          <div class="form-section">
+            <label for="templateAccount">Select Account:</label>
+            <select id="templateAccount" class="form-control">
+              <option value="">-- Select Account --</option>
+            </select>
+
+            <div id="templatesEditor" class="templates-editor" style="display: none;">
+              <h3>Templates</h3>
+
+              <div class="template-item">
+                <label>First Comment (Static):</label>
+                <textarea id="firstTemplate" class="form-control" rows="2" placeholder="Hi"></textarea>
+              </div>
+
+              <div class="template-item">
+                <label>Comment Templates (will be mutated):</label>
+                <div id="templatesList"></div>
+                <button id="addTemplateBtn" class="btn btn-sm btn-secondary mt-2">+ Add Template</button>
+              </div>
+
+              <button id="saveTemplatesBtn" class="btn btn-primary mt-3">Save Templates</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Activity Page -->
+        <div id="activity-page" class="page">
+          <h1>Activity History</h1>
+
+          <div class="filters mb-3">
+            <select id="activityFilter" class="form-control" style="width: auto;">
+              <option value="">All Activities</option>
+              <option value="comment">Comments</option>
+              <option value="react">Reactions</option>
+            </select>
+          </div>
+
+          <div class="table-container">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Account</th>
+                  <th>Action</th>
+                  <th>Status</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody id="activityTableBody">
+                <tr>
+                  <td colspan="5" class="text-center">No activity yet</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Settings Page -->
+        <div id="settings-page" class="page">
+          <h1>Settings</h1>
+
+          <div class="settings-form">
+            <div class="setting-post">
+              <h3>Comment Settings</h3>
+
+              <div class="setting-item">
+                <label>Comment Delay (seconds):</label>
+                <div class="range-input">
+                  <input type="number" id="commentDelayMin" class="form-control" value="30" min="10">
+                  <span>to</span>
+                  <input type="number" id="commentDelayMax" class="form-control" value="120" min="10">
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label>Max Comments Per Account:</label>
+                <input type="number" id="maxCommentsPerAccount" class="form-control" value="20" min="1" max="50">
+              </div>
+
+              <div class="setting-item">
+                <label>Account Switch Delay (seconds):</label>
+                <input type="number" id="accountSwitchDelay" class="form-control" value="60" min="10">
+              </div>
+
+              <div class="setting-item">
+                <label>Group Rotation Delay (seconds):</label>
+                <input type="number" id="postRotationDelay" class="form-control" value="10" min="5">
+              </div>
+
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" id="autoDeletePending" checked>
+                  Auto Delete Pending Comments
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-post">
+              <h3>React Settings</h3>
+
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" id="autoReact" checked>
+                  Enable Auto React on Comments
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label>Reaction Types:</label>
+                <div class="checkbox-post">
+                  <label><input type="checkbox" name="reactionType" value="LIKE" checked> 👍 Like</label>
+                  <label><input type="checkbox" name="reactionType" value="LOVE" checked> ❤️ Love</label>
+                  <label><input type="checkbox" name="reactionType" value="HAHA" checked> 😆 Haha</label>
+                  <label><input type="checkbox" name="reactionType" value="WOW" checked> 😮 Wow</label>
+                </div>
+              </div>
+
+              <div class="setting-item">
+                <label>Reaction Probability (%):</label>
+                <input type="number" id="reactionProbability" class="form-control" value="70" min="0" max="100">
+              </div>
+
+              <div class="setting-item">
+                <label>Reaction Delay (seconds):</label>
+                <div class="range-input">
+                  <input type="number" id="reactionDelayMin" class="form-control" value="2" min="1">
+                  <span>to</span>
+                  <input type="number" id="reactionDelayMax" class="form-control" value="8" min="1">
+                </div>
+              </div>
+            </div>
+
+            <div class="setting-post">
+              <h3>Browser Settings</h3>
+
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" id="headless">
+                  Run in Headless Mode
+                </label>
+              </div>
+            </div>
+
+            <div class="setting-post">
+              <h3>Working Hours</h3>
+
+              <div class="setting-item">
+                <label>
+                  <input type="checkbox" id="respectWorkingHours">
+                  Enable Working Hours Restriction
+                </label>
+              </div>
+
+              <div class="setting-item">
+                <label>Working Hours:</label>
+                <div class="range-input">
+                  <input type="number" id="workingHoursStart" class="form-control" value="9" min="0" max="23">
+                  <span>to</span>
+                  <input type="number" id="workingHoursEnd" class="form-control" value="21" min="0" max="23">
+                </div>
+              </div>
+            </div>
+
+            <button id="saveSettingsBtn" class="btn btn-success mt-3">Save Settings</button>
+          </div>
+        </div>
+
+        <!-- Live Logs Page -->
+        <div id="live-logs-page" class="page">
+          <h1>🔴 Live Automation Logs</h1>
+
+          <div class="logs-page-section">
+            <div class="section-header">
+              <h2>Real-time Activity Monitor</h2>
+              <button id="clearLiveLogsBtn" class="btn btn-sm">Clear All Logs</button>
+            </div>
+            <div class="logs-container live-logs-container" id="liveLogsContainer">
+              <div class="log-item info">
+                <span class="log-time">00:00:00</span>
+                <span class="log-message">System ready. Logs will appear here when automation starts.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- User Guide Page -->
+        <div id="user-guide-page" class="page">
+          <h1>📖 User Guide - Complete Documentation</h1>
+
+          <div class="guide-container">
+            <!-- Software Information Section -->
+            <div class="guide-section">
+              <h2>🤖 Software Information</h2>
+              <div class="info-card">
+                <div class="info-row">
+                  <span class="info-label">📦 Software Name:</span>
+                  <span class="info-value">FB Comment Automation</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">🔢 Version:</span>
+                  <span class="info-value">2.0.3</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">📅 Release Date:</span>
+                  <span class="info-value">February 15, 2026</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">👨‍💻 Developer:</span>
+                  <span class="info-value">Minhazul Ruhan</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">💬 Telegram:</span>
+                  <span class="info-value">
+                    <a href="https://t.me/Minhazulruhan1" target="_blank" class="telegram-link">
+                      @Minhazulruhan1
+                    </a>
+                  </span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">🌐 GitHub:</span>
+                  <span class="info-value">
+                    <a href="https://github.com/minhajulrohan" target="_blank" class="github-link">
+                      github.com/minhajulrohan
+                    </a>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- License System Section -->
+            <div class="guide-section">
+              <h2>🔐 License System</h2>
+              <div class="info-card">
+                <h3>How License Works:</h3>
+                <ol class="guide-list">
+                  <li>
+                    <strong>Activation Required:</strong> Software requires a valid license key to run
+                  </li>
+                  <li>
+                    <strong>License Key Format:</strong> 32-character unique key (e.g., ABC123DEF456...)
+                  </li>
+                  <li>
+                    <strong>Expiry System:</strong> Each license has an expiration date
+                  </li>
+                  <li>
+                    <strong>Device Lock:</strong> License tied to your computer's hardware ID
+                  </li>
+                </ol>
+
+                <h3 style="margin-top: 20px;">License Activation Steps:</h3>
+                <ol class="guide-list">
+                  <li>Launch the application</li>
+                  <li>License activation window will appear</li>
+                  <li>Enter your license key</li>
+                  <li>Click "Activate License"</li>
+                  <li>System validates key from Firebase</li>
+                  <li>If valid, software unlocks ✅</li>
+                </ol>
+
+                <h3 style="margin-top: 20px;">License Information Display:</h3>
+                <p>Top-right corner shows:</p>
+                <ul class="guide-list">
+                  <li>📅 License expiry date</li>
+                  <li>⏰ Days remaining</li>
+                  <li>⚠️ Warning when less than 7 days left</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">Getting a License:</h3>
+                <p>Contact developer on Telegram: <a href="https://t.me/Minhazulruhan1"
+                    target="_blank">@Minhazulruhan1</a></p>
+              </div>
+            </div>
+
+            <!-- What This Software Does -->
+            <div class="guide-section">
+              <h2>⚙️ What This Software Does</h2>
+              <div class="info-card">
+                <h3>Core Functions:</h3>
+                <ul class="guide-list">
+                  <li>
+                    <strong>🤖 Automated Commenting:</strong> Automatically posts comments on Facebook posts
+                  </li>
+                  <li>
+                    <strong>👥 Multiple Accounts:</strong> Manage and automate 10-20 Facebook accounts simultaneously
+                  </li>
+                  <li>
+                    <strong>📝 Template System:</strong> Create custom comment templates for each account
+                  </li>
+                  <li>
+                    <strong>❤️ Auto-React:</strong> Automatically reacts to own comments (Like, Love, Haha, Wow)
+                  </li>
+                  <li>
+                    <strong>🛡️ Anti-Ban Protection:</strong> Human-like behavior simulation to avoid detection
+                  </li>
+                  <li>
+                    <strong>🌐 Proxy Support:</strong> Use different proxies for different accounts (different IPs)
+                  </li>
+                  <li>
+                    <strong>📊 Real-time Monitoring:</strong> Track all automation activities with live logs
+                  </li>
+                  <li>
+                    <strong>🔄 Auto-Update:</strong> One-click and Update Now Software
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- How It Works -->
+            <div class="guide-section">
+              <h2>🔍 How It Works</h2>
+              <div class="info-card">
+                <h3>Step-by-Step Process:</h3>
+
+                <div class="workflow-step">
+                  <h4>1️⃣ Account Setup</h4>
+                  <ul>
+                    <li>Add Facebook accounts with cookies</li>
+                    <li>Optionally configure proxy for each account</li>
+                    <li>System stores accounts in encrypted database</li>
+                  </ul>
+                </div>
+
+                <div class="workflow-step">
+                  <h4>2️⃣ Post Management</h4>
+                  <ul>
+                    <li>Add Facebook post URLs you want to comment on</li>
+                    <li>Assign posts to specific accounts</li>
+                    <li>Each account processes only its assigned posts</li>
+                  </ul>
+                </div>
+
+                <div class="workflow-step">
+                  <h4>3️⃣ Template Creation</h4>
+                  <ul>
+                    <li>Create comment templates for each account</li>
+                    <li>Software adds "Hi " prefix automatically</li>
+                    <li>Templates are mutated for variation</li>
+                  </ul>
+                </div>
+
+                <div class="workflow-step">
+                  <h4>4️⃣ Automation Starts</h4>
+                  <ul>
+                    <li>Click "Start Automation"</li>
+                    <li>Browser launches for each account (with proxy if configured)</li>
+                    <li>Navigates to assigned posts</li>
+                    <li>Posts random initial comment</li>
+                    <li>Edits comment with template</li>
+                    <li>Adds reaction (if enabled)</li>
+                    <li>Checks if comment is pending/declined</li>
+                    <li>Auto-deletes if needed</li>
+                  </ul>
+                </div>
+
+                <div class="workflow-step">
+                  <h4>5️⃣ Monitoring</h4>
+                  <ul>
+                    <li>View real-time logs in Live Logs page</li>
+                    <li>Track statistics in Dashboard</li>
+                    <li>Check activity history in Activity page</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Features Explanation -->
+            <div class="guide-section">
+              <h2>✨ Key Features Explained</h2>
+              <div class="info-card">
+
+                <div class="feature-card">
+                  <h3>🛡️ Anti-Ban System</h3>
+                  <p><strong>What it does:</strong> Simulates human behavior to avoid Facebook detection</p>
+                  <p><strong>How:</strong></p>
+                  <ul>
+                    <li>Random delays between actions (30-120 seconds)</li>
+                    <li>Types comments character by character (no instant paste)</li>
+                    <li>Scrolls page naturally</li>
+                    <li>Random mouse movements</li>
+                    <li>Account cooldown periods</li>
+                    <li>Working hours restriction (optional)</li>
+                  </ul>
+                </div>
+
+                <div class="feature-card">
+                  <h3>🌐 Proxy Configuration</h3>
+                  <p><strong>What it does:</strong> Each account uses different IP address</p>
+                  <p><strong>Why important:</strong> Facebook won't see multiple accounts from same IP</p>
+                  <p><strong>Format:</strong> http://username:password@host:port</p>
+                  <p><strong>Optional:</strong> Can leave blank to use your actual IP</p>
+                </div>
+
+                <div class="feature-card">
+                  <h3>💬 Comment Mutation</h3>
+                  <p><strong>What it does:</strong> Creates variations of your templates</p>
+                  <p><strong>How:</strong></p>
+                  <ul>
+                    <li>Adds random emojis</li>
+                    <li>Replaces words with synonyms</li>
+                    <li>Changes punctuation</li>
+                    <li>Adds random spacing</li>
+                  </ul>
+                  <p><strong>Result:</strong> Each comment looks unique</p>
+                </div>
+
+                <div class="feature-card">
+                  <h3>🔄 Auto-Update System</h3>
+                  <p><strong>What it does:</strong>click Check Update Button and Auto Updates software</p>
+                  <p><strong>How to use:</strong></p>
+                  <ol>
+                    <li>Click "Check Updates" button (top-right)</li>
+                    <li>If update available, click "Update Now"</li>
+                    <li>Download starts with progress bar</li>
+                    <li>Installation happens automatically</li>
+                    <li>Software restarts with new version</li>
+                  </ol>
+                </div>
+
+                <div class="feature-card">
+                  <h3>📊 Statistics & Monitoring</h3>
+                  <p><strong>Dashboard shows:</strong></p>
+                  <ul>
+                    <li>Total comments posted</li>
+                    <li>Total reactions given</li>
+                    <li>Active/disabled/banned accounts</li>
+                    <li>Pending/declined comments</li>
+                    <li>Per-account statistics</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Settings Explained -->
+            <div class="guide-section">
+              <h2>⚙️ Settings Explained</h2>
+              <div class="info-card">
+                <h3>Comment Settings:</h3>
+                <ul class="guide-list">
+                  <li><strong>Comment Delay:</strong> Time between comments (30-120 sec recommended)</li>
+                  <li><strong>Max Comments Per Account:</strong> Daily limit per account (20 recommended)</li>
+                  <li><strong>Account Switch Delay:</strong> Wait time before switching accounts</li>
+                  <li><strong>Post Rotation Delay:</strong> Wait time between different posts</li>
+                  <li><strong>Auto Delete Pending:</strong> Remove comments stuck in "pending" status</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">React Settings:</h3>
+                <ul class="guide-list">
+                  <li><strong>Enable Auto React:</strong> Automatically react after commenting</li>
+                  <li><strong>Reaction Types:</strong> Choose which reactions to use (Like, Love, etc)</li>
+                  <li><strong>Reaction Probability:</strong> Chance of reacting (70% recommended)</li>
+                  <li><strong>Reaction Delay:</strong> Wait time before reacting (2-8 sec)</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">Browser Settings:</h3>
+                <ul class="guide-list">
+                  <li><strong>Headless Mode:</strong> Run browser invisibly (faster but can't monitor) but not Recomand</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">Working Hours:</h3>
+                <ul class="guide-list">
+                  <li><strong>Enable Restriction:</strong> Only run during specific hours</li>
+                  <li><strong>Hours:</strong> Set start and end time (e.g., 9 AM - 9 PM)</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="guide-section">
+              <h2>🔧 Troubleshooting</h2>
+              <div class="info-card">
+                <h3>Common Issues:</h3>
+
+                <div class="troubleshoot-item">
+                  <h4>❌ "Login verification failed"</h4>
+                  <p><strong>Cause:</strong> Cookies expired or invalid</p>
+                  <p><strong>Solution:</strong> Re-export cookies from Facebook and update account</p>
+                </div>
+
+                <div class="troubleshoot-item">
+                  <h4>❌ "Account checkpoint detected"</h4>
+                  <p><strong>Cause:</strong> Facebook detected suspicious activity</p>
+                  <p><strong>Solution:</strong> Account is disabled automatically. Log in manually to Facebook and pass
+                    checkpoint</p>
+                </div>
+
+                <div class="troubleshoot-item">
+                  <h4>❌ Browser not opening</h4>
+                  <p><strong>Cause:</strong> Playwright browser not installed</p>
+                  <p><strong>Solution:</strong> Run: npx playwright install chromium</p>
+                </div>
+
+                <div class="troubleshoot-item">
+                  <h4>❌ Proxy connection failed</h4>
+                  <p><strong>Cause:</strong> Proxy server down or wrong credentials</p>
+                  <p><strong>Solution:</strong> Verify proxy format and test with proxy provider</p>
+                </div>
+
+                <div class="troubleshoot-item">
+                  <h4>❌ Update check failed</h4>
+                  <p><strong>Cause:</strong> No internet or GitHub API issue</p>
+                  <p><strong>Solution:</strong> Check internet connection, try again later</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contact & Support -->
+            <div class="guide-section">
+              <h2>📞 Contact & Support</h2>
+              <div class="info-card">
+                <h3>Need Help?</h3>
+                <p>For support, feature requests, or license purchase:</p>
+
+                <div class="contact-box">
+                  <h4>💬 Telegram (Recommended)</h4>
+                  <p>
+                    <a href="https://t.me/Minhazulruhan1" target="_blank" class="contact-link">
+                      https://t.me/Minhazulruhan1
+                    </a>
+                  </p>
+                  <p class="contact-note">Fast response, available 24/7</p>
+                </div>
+
+                <div class="contact-box">
+                  <h4>🌐 Whatsapp</h4>
+                  <p>
+                    <a href="https://wa.me/8801580361156" target="_blank"
+                      class="contact-link">
+                      01580361156
+                    </a>
+                  </p>
+                  <p class="contact-note">Report bugs, request features, view updates</p>
+                </div>
+
+                <div class="contact-box">
+                  <h4>📚 Documentation</h4>
+                  <p>Complete guides available in installation folder:</p>
+                  <ul>
+                    <li>PROXY-GUIDE.md - Proxy setup guide</li>
+                    <li>AUTO-UPDATE-GUIDE.md - Update system guide</li>
+                    <li>RELEASE-GUIDE.md - For developers</li>
+                    <li>README.md - Main documentation</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- Credits -->
+            <div class="guide-section">
+              <h2>🏆 Credits & Acknowledgments</h2>
+              <div class="info-card">
+                <h3>Developed By:</h3>
+                <div class="credit-card">
+                  <h4>👨‍💻 Minhazul Ruhan</h4>
+                  <p>Full-stack Developer & Automation Specialist</p>
+                  <p>Telegram: <a href="https://t.me/Minhazulruhan1" target="_blank">@Minhazulruhan1</a></p>
+                  <p>GitHub: <a href="https://github.com/minhajulrohan" target="_blank">github.com/minhajulrohan</a></p>
+                </div>
+
+                <h3 style="margin-top: 20px;">Version History:</h3>
+                <ul class="guide-list">
+                  <li>v2.0.0 - Account isolation system</li>
+                  <li>v2.0.1 - Auto-update feature</li>
+                  <li>v2.0.2 - Proxy documentation</li>
+                  <li>v2.0.3 - Enhanced auto-update (Current)</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Legal Notice -->
+            <div class="guide-section">
+              <h2>⚖️ Legal Notice</h2>
+              <div class="info-card legal-notice">
+                <h3>⚠️ Important:</h3>
+                <ul class="guide-list">
+                  <li>This software is for educational and automation purposes only</li>
+                  <li>Users are responsible for complying with Facebook's Terms of Service</li>
+                  <li>Developer is not responsible for any misuse or account bans</li>
+                  <li>Use at your own risk</li>
+                  <li>Respect Facebook's policies and rate limits</li>
+                </ul>
+
+                <h3 style="margin-top: 20px;">📜 License:</h3>
+                <p>This software is proprietary and requires a valid license key to operate.</p>
+                <p>Unauthorized distribution, modification, or reverse engineering is prohibited.</p>
+                <p>© 2026 Minhazul Rohan. All rights reserved.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modals -->
+  <div id="accountModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Account</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-post">
+          <label>Account Name:</label>
+          <input type="text" id="accountName" class="form-control" placeholder="My Account 1">
+        </div>
+
+        <div class="form-post">
+          <label>Cookies (JSON Array):</label>
+          <textarea id="accountCookies" class="form-control" rows="8"
+            placeholder='[{"name":"c_user","value":"...","domain":".facebook.com"}]'></textarea>
+          <small>Paste cookies in JSON format from your browser extension</small>
+        </div>
+
+        <div class="form-post">
+          <label>Proxy (optional):</label>
+          <input type="text" id="accountProxy" class="form-control" placeholder="http://username:password@host:port">
+          <small>
+            <strong>Format:</strong> http://username:password@host:port<br>
+            <strong>Example:</strong> http://user:pass@gw.dataimpulse.com:10000<br>
+            Leave empty to use your actual IP address. Each account can have different proxy for different IP addresses.
+            <a href="#" onclick="window.api.openExternal('file://PROXY-GUIDE.md'); return false;">Read full proxy
+              guide</a>
+          </small>
+        </div>
+
+        <div class="form-post">
+          <label>User Agent (optional):</label>
+          <input type="text" id="accountUserAgent" class="form-control" placeholder="Leave empty for default">
+        </div>
+
+        <button id="saveAccountBtn" class="btn btn-primary">Save Account</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="postModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Add Post</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Assign to Account:</label>
+          <select id="postAccountId" class="form-control" required>
+            <option value="">-- Select Account --</option>
+          </select>
+          <small>This post will only be processed by the selected account</small>
+        </div>
+
+        <div class="form-group">
+          <label>Post URL:</label>
+          <input type="text" id="postUrl" class="form-control"
+            placeholder="https://www.facebook.com/groups/.../posts/...">
+        </div>
+
+        <div class="form-group">
+          <label>Post Title (optional):</label>
+          <input type="text" id="postTitle" class="form-control" placeholder="My Post">
+        </div>
+
+        <button id="savePostBtn" class="btn btn-primary">Save Post</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="importPostsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Import Multiple Posts</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Assign to Account:</label>
+          <select id="importAccountId" class="form-control" required>
+            <option value="">-- Select Account --</option>
+          </select>
+          <small>All imported posts will be assigned to the selected account</small>
+        </div>
+
+        <div class="form-group">
+          <label>Post URLs (one per line):</label>
+          <textarea id="postUrlsList" class="form-control" rows="10"
+            placeholder="https://www.facebook.com/groups/123/posts/456&#10;https://www.facebook.com/groups/123/posts/789&#10;..."></textarea>
+        </div>
+
+        <button id="importPostsConfirmBtn" class="btn btn-primary">Import Posts</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Update Modal -->
+  <div id="updateModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Software Update</h2>
+        <span class="close">&times;</span>
+      </div>
+      <div class="modal-body">
+        <div id="updateContent">
+          <div class="update-checking" id="updateChecking">
+            <div class="spinner"></div>
+            <p>Checking for updates...</p>
+          </div>
+
+          <div class="update-result" id="updateResult" style="display: none;">
+            <!-- This will be populated dynamically -->
+          </div>
+
+          <div class="update-download" id="updateDownload" style="display: none;">
+            <h3>Downloading Update...</h3>
+            <div class="progress-bar">
+              <div class="progress-fill" id="downloadProgress"></div>
+            </div>
+            <p id="downloadStatus">Preparing download...</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+
+</html>

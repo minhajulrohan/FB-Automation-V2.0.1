@@ -1,0 +1,43 @@
+# Firebase Credentials (NEVER COMMIT!)
+serviceAccountKey.json
+
+# License Files
+license.json
+licenses*.txt
+
+# Dependencies
+node_modules/
+
+# Logs
+*.log
+logs/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Build Output
+dist/
+build/
+*.exe
+*.dmg
+*.pkg
+*.deb
+
+# Obfuscated Files
+*.obfuscated.js
+*.jsc
+
+# Environment Variables
+.env
+.env.local
+
+# Temporary Files
+tmp/
+temp/

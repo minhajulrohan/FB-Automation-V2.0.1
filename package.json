@@ -1,0 +1,71 @@
+{
+  "name": "fb-comment-automation",
+  "version": "2.0.3",
+  "description": "Facebook Group Comment Automation Desktop Software - With Enhanced Auto-Update System",
+  "main": "src/main-with-license.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win --x64",
+    "test:cookies": "node test-cookie-fix.js",
+    "test:login": "node example-login.js",
+    "admin": "node admin.js",
+    "migrate": "node migrate-database.js"
+  },
+  "build": {
+    "appId": "com.fbautomation.app",
+    "productName": "FB Comment Automator",
+    "files": [
+      "**/*",
+      "src/utils/serviceAccountKey.json"
+    ],
+    "extraResources": [
+      {
+        "from": "src/utils/serviceAccountKey.json",
+        "to": "serviceAccountKey.json"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  },
+  "keywords": [
+    "facebook",
+    "automation",
+    "electron",
+    "playwright"
+  ],
+  "author": {
+    "name": "Md Minhazul Islam Ruhan",
+    "email": "minhajulislamrohan123@gmail.com"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "better-sqlite3": "^9.6.0",
+    "chalk": "^4.1.2",
+    "crypto-js": "^4.2.0",
+    "firebase-admin": "^12.7.0",
+    "node-cron": "^3.0.3",
+    "node-machine-id": "^1.1.12",
+    "playwright": "^1.40.1",
+    "playwright-extra": "^4.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "readline-sync": "^1.4.10",
+    "uuid": "^9.0.1",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "electron": "^28.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-rebuild": "^3.2.9"
+  }
+}
