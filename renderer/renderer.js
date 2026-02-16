@@ -7,8 +7,36 @@ let posts = [];
 let settings = {};
 let selectedAccount = null;
 
+// Theme System
+function initThemeSystem() {
+  const themeSelect = document.getElementById('themeSelect');
+
+  // Load saved theme from localStorage or default to 'default'
+  const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+  applyTheme(savedTheme);
+  themeSelect.value = savedTheme;
+
+  // Listen for theme changes
+  themeSelect.addEventListener('change', (e) => {
+    const selectedTheme = e.target.value;
+    applyTheme(selectedTheme);
+    localStorage.setItem('selectedTheme', selectedTheme);
+  });
+}
+
+function applyTheme(themeName) {
+  document.documentElement.setAttribute('data-theme', themeName);
+
+  // Add smooth transition class temporarily
+  document.body.style.transition = 'all 0.3s ease';
+  setTimeout(() => {
+    document.body.style.transition = '';
+  }, 300);
+}
+
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeSystem(); // Initialize theme system first
   initNavigation();
   initAutomationControls();
   initAccountManagement();
@@ -177,7 +205,7 @@ function initAccountManagement() {
       clearAccountForm();
       loadAccounts();
       loadStats();
-      addLog('success', `Account "${name}" added successfully`);
+      showSuccessModal('Account Added!', `Account "${name}" has been successfully added and is ready to use.`);
     } catch (error) {
       alert('Invalid cookies JSON format');
     }
@@ -315,7 +343,7 @@ function initPostManagement() {
       await loadPosts();
       await loadStats();
 
-      addLog('success', 'Post added successfully');
+      showSuccessModal('Post Added!', `Post has been successfully added and assigned to the selected account.`);
 
     } catch (error) {
       console.error('Add post error:', error);
@@ -411,11 +439,9 @@ function initPostManagement() {
         addLog('error', `Import failed - 0 URLs imported from ${urls.length} provided`);
       } else if (imported.length < urls.length) {
         const failed = urls.length - imported.length;
-        alert(`Partially successful!\n\nImported: ${imported.length} posts\nFailed: ${failed} posts\n\nCheck console for error details.`);
-        addLog('warning', `${imported.length} posts imported, ${failed} failed`);
+        showSuccessModal('Partial Import Success', `Successfully imported ${imported.length} posts!\n\n${failed} posts failed to import. Check logs for details.`);
       } else {
-        alert(`✅ Successfully imported ${imported.length} posts!`);
-        addLog('success', `${imported.length} posts imported successfully`);
+        showSuccessModal('Import Successful!', `Successfully imported ${imported.length} posts! All posts are now ready for automation.`);
       }
 
       closeModal('importPostsModal');
@@ -610,7 +636,8 @@ function initTemplateManagement() {
     });
 
     await ipcRenderer.invoke('save-templates', selectedAccount, templates);
-    addLog('success', 'Templates saved successfully');
+    const accountName = accounts.find(a => a.id === selectedAccount)?.name || 'Selected account';
+    showSuccessModal('Templates Saved!', `Comment templates for "${accountName}" have been successfully updated.`);
   });
 }
 
@@ -680,7 +707,7 @@ function initSettings() {
 
     await ipcRenderer.invoke('save-settings', newSettings);
     settings = newSettings;
-    addLog('success', 'Settings saved successfully');
+    showSuccessModal('Settings Saved!', 'Your automation settings have been successfully updated and will take effect immediately.');
   });
 }
 
@@ -1108,9 +1135,126 @@ function setupIPCListeners() {
       }
     }
   });
+
+  // ==========================================
+  // AUTOMATIC UPDATE NOTIFICATIONS
+  // ==========================================
+
+  // Listen for update available notification
+  ipcRenderer.on('update-available', (event, data) => {
+    console.log('Update available notification received:', data);
+    showUpdateNotificationBanner(data);
+  });
+
+  // Listen for show update modal event
+  ipcRenderer.on('show-update-modal', () => {
+    const updateModal = document.getElementById('updateModal');
+    if (updateModal) {
+      updateModal.classList.add('active');
+    }
+  });
+
+  // Listen for start update download event
+  ipcRenderer.on('start-update-download', (event, updateInfo) => {
+    // Automatically start download
+    downloadAndInstallUpdate();
+  });
+}
+
+// ==========================================
+// UPDATE NOTIFICATION BANNER
+// ==========================================
+function showUpdateNotificationBanner(updateData) {
+  // Remove existing banner if any
+  const existingBanner = document.getElementById('updateNotificationBanner');
+  if (existingBanner) {
+    existingBanner.remove();
+  }
+
+  // Create notification banner
+  const banner = document.createElement('div');
+  banner.id = 'updateNotificationBanner';
+  banner.className = 'update-notification-banner';
+  banner.innerHTML = `
+    <div class="update-banner-content">
+      <div class="update-banner-icon">🎉</div>
+      <div class="update-banner-text">
+        <strong>New Update Available!</strong>
+        <span>Version ${updateData.latestVersion} is ready to install (Current: ${updateData.currentVersion})</span>
+      </div>
+      <div class="update-banner-actions">
+        <button class="btn btn-primary btn-sm" onclick="showUpdateModal()">
+          <span class="icon">⬇️</span> Update Now
+        </button>
+        <button class="btn btn-secondary btn-sm" onclick="dismissUpdateBanner()">
+          <span class="icon">✕</span> Later
+        </button>
+      </div>
+    </div>
+  `;
+
+  // Insert banner at the top of content area
+  const contentArea = document.querySelector('.content');
+  if (contentArea) {
+    contentArea.insertBefore(banner, contentArea.firstChild);
+  }
+
+  // Auto-hide after 30 seconds
+  setTimeout(() => {
+    if (banner && banner.parentElement) {
+      banner.style.animation = 'slideUp 0.3s ease';
+      setTimeout(() => banner.remove(), 300);
+    }
+  }, 30000);
+}
+
+function dismissUpdateBanner() {
+  const banner = document.getElementById('updateNotificationBanner');
+  if (banner) {
+    banner.style.animation = 'slideUp 0.3s ease';
+    setTimeout(() => banner.remove(), 300);
+  }
+}
+
+function showUpdateModal() {
+  dismissUpdateBanner();
+  const updateModal = document.getElementById('updateModal');
+  if (updateModal) {
+    updateModal.classList.add('active');
+  }
+  // Trigger update check to show latest info
+  document.getElementById('checkUpdateBtn').click();
 }
 
 // Make functions globally accessible
 window.toggleAccount = toggleAccount;
 window.deleteAccount = deleteAccount;
 window.deletePost = deletePost;
+
+// ==========================================
+// SUCCESS MODAL FUNCTIONS
+// ==========================================
+function showSuccessModal(title, message) {
+  const modal = document.getElementById('successModal');
+  const titleEl = document.getElementById('successTitle');
+  const textEl = document.getElementById('successText');
+
+  titleEl.textContent = title;
+  textEl.textContent = message;
+
+  modal.classList.add('active');
+
+  // Auto close after 3 seconds
+  setTimeout(() => {
+    closeSuccessModal();
+  }, 3000);
+}
+
+function closeSuccessModal() {
+  const modal = document.getElementById('successModal');
+  modal.classList.remove('active');
+}
+
+// Make success modal functions globally accessible
+window.showSuccessModal = showSuccessModal;
+window.closeSuccessModal = closeSuccessModal;

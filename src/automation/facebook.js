@@ -460,6 +460,7 @@ class FacebookAutomator {
           // মেনু না আসলে সরাসরি লাইক ক্লিক করবে
           await commentLikeButton.click();
           this.logger.info('Care menu not found, clicked Like instead');
+          return { success: true }; // Like also counts as success
         }
       } else {
         throw new Error('Could not find the comment Like button');

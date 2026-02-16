@@ -276,6 +276,90 @@ ipcMain.handle('get-license-info', async () => {
 });
 
 // ==========================================
+// AUTOMATIC UPDATE CHECK AND NOTIFICATION
+// ==========================================
+async function checkAndNotifyUpdate() {
+  try {
+    console.log('Checking for updates automatically...');
+
+    if (!updater) {
+      updater = new Updater();
+    }
+
+    const updateInfo = await updater.checkForUpdates();
+
+    if (updateInfo.updateAvailable) {
+      console.log(`New version available: ${updateInfo.latestVersion}`);
+
+      // Send notification to renderer
+      if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('update-available', {
+          currentVersion: updateInfo.currentVersion,
+          latestVersion: updateInfo.latestVersion,
+          downloadUrl: updateInfo.downloadUrl,
+          releaseNotes: updateInfo.releaseNotes
+        });
+      }
+
+      // Show native notification
+      const { Notification } = require('electron');
+
+      if (Notification.isSupported()) {
+        const notification = new Notification({
+          title: '🎉 New Update Available!',
+          body: `Version ${updateInfo.latestVersion} is now available! (Current: ${updateInfo.currentVersion})`,
+          icon: path.join(__dirname, '../assets/icon.png'),
+          urgency: 'normal'
+        });
+
+        notification.show();
+
+        // Open update modal when notification is clicked
+        notification.on('click', () => {
+          if (mainWindow) {
+            mainWindow.focus();
+            mainWindow.webContents.send('show-update-modal');
+          }
+        });
+      }
+
+      // Also show dialog box
+      const response = await dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Update Available',
+        message: `A new version (${updateInfo.latestVersion}) is available!`,
+        detail: `Current version: ${updateInfo.currentVersion}\n\nWould you like to download and install the update now?`,
+        buttons: ['Download Now', 'Remind Me Later', 'Skip This Version'],
+        defaultId: 0,
+        cancelId: 1
+      });
+
+      if (response.response === 0) {
+        // User clicked "Download Now"
+        if (mainWindow) {
+          mainWindow.webContents.send('start-update-download', updateInfo);
+        }
+      } else if (response.response === 2) {
+        // User clicked "Skip This Version" - save to skip this version
+        try {
+          const Store = require('electron-store');
+          const store = new Store();
+          store.set('skippedVersion', updateInfo.latestVersion);
+        } catch (error) {
+          // electron-store not available, skip this feature
+          console.log('Skipped version tracking not available (electron-store not installed)');
+        }
+      }
+    } else {
+      console.log('No updates available. Current version is up to date.');
+    }
+  } catch (error) {
+    console.error('Auto update check failed:', error.message);
+    // Don't show error to user for automatic checks
+  }
+}
+
+// ==========================================
 // APP INITIALIZATION
 // ==========================================
 app.whenReady().then(async () => {
@@ -317,6 +401,20 @@ app.whenReady().then(async () => {
   createWindow();
   setupIPCHandlers();
   setupDailyReset();
+
+  // ==========================================
+  // AUTOMATIC UPDATE NOTIFICATION SYSTEM
+  // ==========================================
+
+  // Check for updates on app startup (after 10 seconds delay)
+  setTimeout(async () => {
+    await checkAndNotifyUpdate();
+  }, 10000);
+
+  // Setup periodic update check (every 6 hours)
+  setInterval(async () => {
+    await checkAndNotifyUpdate();
+  }, 6 * 60 * 60 * 1000); // Every 6 hours
 });
 
 function sendToRenderer(event, data) {

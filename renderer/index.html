@@ -70,6 +70,17 @@
         </div>
 
         <div class="header-right">
+          <!-- Theme Selector -->
+          <div class="theme-selector">
+            <label for="themeSelect" class="theme-label">🎨</label>
+            <select id="themeSelect" class="theme-dropdown">
+              <option value="default">Default Dark</option>
+              <option value="light">Light Mode</option>
+              <option value="cyberpunk">Cyberpunk</option>
+              <option value="ocean">Ocean Blue</option>
+            </select>
+          </div>
+
           <!-- License Info -->
           <div class="license-info" id="licenseInfo">
             <div class="license-item">
@@ -717,7 +728,8 @@
 
                 <h3 style="margin-top: 20px;">Browser Settings:</h3>
                 <ul class="guide-list">
-                  <li><strong>Headless Mode:</strong> Run browser invisibly (faster but can't monitor) but not Recomand</li>
+                  <li><strong>Headless Mode:</strong> Run browser invisibly (faster but can't monitor) but not Recomand
+                  </li>
                 </ul>
 
                 <h3 style="margin-top: 20px;">Working Hours:</h3>
@@ -787,8 +799,7 @@
                 <div class="contact-box">
                   <h4>🌐 Whatsapp</h4>
                   <p>
-                    <a href="https://wa.me/8801580361156" target="_blank"
-                      class="contact-link">
+                    <a href="https://wa.me/8801580361156" target="_blank" class="contact-link">
                       01580361156
                     </a>
                   </p>
@@ -980,6 +991,33 @@
             </div>
             <p id="downloadStatus">Preparing download...</p>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Success Modal -->
+  <div id="successModal" class="modal">
+    <div class="modal-content success-modal-content">
+      <div class="modal-body">
+        <div class="success-animation">
+          <div class="success-checkmark">
+            <div class="check-icon">
+              <span class="icon-line line-tip"></span>
+              <span class="icon-line line-long"></span>
+              <div class="icon-circle"></div>
+              <div class="icon-fix"></div>
+            </div>
+          </div>
+        </div>
+        <div class="success-message">
+          <h2 id="successTitle">Success!</h2>
+          <p id="successText">Operation completed successfully</p>
+        </div>
+        <div class="success-actions">
+          <button class="btn btn-primary" onclick="closeSuccessModal()">
+            <span class="icon">✓</span> Got it
+          </button>
         </div>
       </div>
     </div>
