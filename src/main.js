@@ -360,9 +360,119 @@ async function checkAndNotifyUpdate() {
 }
 
 // ==========================================
+// AUTOMATIC PLAYWRIGHT BROWSER INSTALLATION
+// ==========================================
+async function ensurePlaywrightBrowsers() {
+  const { execSync } = require('child_process');
+  const fs = require('fs');
+  const os = require('os');
+
+  try {
+    console.log('Checking Playwright browser installation...');
+
+    // Check if Chromium is already installed
+    const playwrightPath = path.join(
+      os.homedir(),
+      '.cache/ms-playwright'
+    );
+
+    // Alternative path for Windows
+    const windowsPath = path.join(
+      process.env.LOCALAPPDATA || '',
+      'ms-playwright'
+    );
+
+    const chromiumExists = fs.existsSync(playwrightPath) || fs.existsSync(windowsPath);
+
+    if (!chromiumExists) {
+      console.log('Playwright browsers not found. Installing...');
+
+      // Show loading dialog
+      const loadingDialog = dialog.showMessageBox({
+        type: 'info',
+        title: 'First Time Setup',
+        message: 'Installing browser components...',
+        detail: 'This is a one-time setup. Please wait...',
+        buttons: []
+      });
+
+      try {
+        // Install Chromium browser
+        console.log('Running: npx playwright install chromium');
+        execSync('npx playwright install chromium', {
+          stdio: 'inherit',
+          timeout: 300000 // 5 minutes timeout
+        });
+
+        console.log('Playwright browser installed successfully!');
+
+        // Close loading dialog
+        if (loadingDialog) {
+          // Dialog auto-closes after installation
+        }
+
+        dialog.showMessageBoxSync({
+          type: 'info',
+          title: 'Setup Complete',
+          message: 'Browser components installed successfully!',
+          detail: 'The application is now ready to use.'
+        });
+
+      } catch (installError) {
+        console.error('Failed to install Playwright browser:', installError);
+
+        const response = dialog.showMessageBoxSync({
+          type: 'error',
+          title: 'Installation Failed',
+          message: 'Failed to install browser components automatically.',
+          detail: 'Would you like to install manually or continue anyway?',
+          buttons: ['Install Manually', 'Continue Anyway', 'Exit'],
+          defaultId: 0,
+          cancelId: 2
+        });
+
+        if (response === 0) {
+          // Open terminal with command
+          const { shell } = require('electron');
+          dialog.showMessageBoxSync({
+            type: 'info',
+            title: 'Manual Installation',
+            message: 'Please run this command in your terminal:',
+            detail: 'npx playwright install chromium\n\nThen restart the application.'
+          });
+          app.quit();
+          return false;
+        } else if (response === 2) {
+          app.quit();
+          return false;
+        }
+        // If "Continue Anyway", proceed but warn user
+      }
+    } else {
+      console.log('Playwright browsers already installed.');
+    }
+
+    return true;
+
+  } catch (error) {
+    console.error('Error checking Playwright installation:', error);
+    // Continue anyway, will show error when automation starts
+    return true;
+  }
+}
+
+// ==========================================
 // APP INITIALIZATION
 // ==========================================
 app.whenReady().then(async () => {
+  // First, ensure Playwright browsers are installed
+  const browsersReady = await ensurePlaywrightBrowsers();
+
+  if (!browsersReady) {
+    // User chose to exit or install manually
+    return;
+  }
+
   // Verify license first
   const isLicensed = await verifyLicense();
 

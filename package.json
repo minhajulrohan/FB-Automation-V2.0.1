@@ -1,6 +1,6 @@
 {
   "name": "fb-comment-automation",
-  "version": "2.0.4",
+  "version": "2.0.5",
   "description": "Facebook Group Comment Automation Desktop Software - With Enhanced Auto-Update System",
   "main": "src/main-with-license.js",
   "scripts": {
@@ -11,7 +11,8 @@
     "test:cookies": "node test-cookie-fix.js",
     "test:login": "node example-login.js",
     "admin": "node admin.js",
-    "migrate": "node migrate-database.js"
+    "migrate": "node migrate-database.js",
+    "postinstall": "npx playwright install chromium --with-deps"
   },
   "build": {
     "appId": "com.fbautomation.app",
