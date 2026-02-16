@@ -999,6 +999,9 @@ async function downloadAndInstallUpdate(downloadUrl) {
     downloadDiv.innerHTML = `
       <h3>✅ Download Complete</h3>
       <p>Installing update and restarting application...</p>
+      <p style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">
+        Note: The app will close automatically. If you see an error, please close the app manually and run the installer from Downloads folder.
+      </p>
       <div class="spinner"></div>
     `;
 
@@ -1006,9 +1009,24 @@ async function downloadAndInstallUpdate(downloadUrl) {
 
     if (!installResult.success) {
       downloadDiv.innerHTML = `
-        <h3>❌ Installation Failed</h3>
-        <p style="color: #f4212e;">${installResult.error}</p>
-        <button class="btn btn-secondary mt-3" onclick="closeModal('updateModal')">Close</button>
+        <h3>⚠️ Manual Installation Required</h3>
+        <p style="color: var(--warning);">The automatic installation couldn't complete.</p>
+        <p style="margin: 15px 0;">Please follow these steps:</p>
+        <ol style="text-align: left; padding-left: 30px; line-height: 1.8;">
+          <li>Close this application completely</li>
+          <li>Go to your Downloads or Temp folder</li>
+          <li>Run the installer manually</li>
+          <li>Follow the installation wizard</li>
+        </ol>
+        <p style="font-size: 12px; margin-top: 15px; color: var(--text-secondary);">
+          Installer location: ${result.installerPath}
+        </p>
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+          <button class="btn btn-primary" onclick="require('electron').shell.openPath('${result.installerPath.replace(/\\/g, '\\\\')}')">
+            📂 Open Installer
+          </button>
+          <button class="btn btn-secondary" onclick="closeModal('updateModal')">Close</button>
+        </div>
       `;
     }
   } catch (error) {

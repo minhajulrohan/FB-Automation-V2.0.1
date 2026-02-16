@@ -192,51 +192,98 @@ class Updater {
       const ext = path.extname(installerPath).toLowerCase();
 
       if (ext === '.exe') {
-        // For .exe installers, use silent install flags
-        const args = ['/S']; // Silent install flag for NSIS installers
+        // Determine installer type by checking file name
+        const fileName = path.basename(installerPath).toLowerCase();
+        let args = [];
+
+        if (fileName.includes('setup') || fileName.includes('installer')) {
+          // NSIS installer
+          // /SILENT - silent mode with progress
+          // /CLOSEAPPLICATIONS - close running app automatically
+          // /RESTARTAPPLICATIONS - restart app after install
+          args = ['/SILENT', '/CLOSEAPPLICATIONS', '/RESTARTAPPLICATIONS'];
+          console.log('Detected NSIS installer');
+        } else {
+          // Squirrel/Electron-builder installer
+          // --silent flag for Squirrel
+          args = ['--silent'];
+          console.log('Detected Squirrel/Electron-builder installer');
+        }
 
         console.log('Launching installer with args:', args);
 
-        execFile(installerPath, args, (error, stdout, stderr) => {
-          if (error) {
-            console.error('Installer error:', error);
-            console.error('Stderr:', stderr);
-            // Even if there's an error, we should quit and let installer run
-          }
+        // Import spawn for non-blocking launch
+        const { spawn } = require('child_process');
 
-          console.log('Installer launched successfully');
-          console.log('Stdout:', stdout);
+        // Launch installer in detached mode so it continues after app quits
+        const installer = spawn(installerPath, args, {
+          detached: true,
+          stdio: 'ignore',
+          shell: true // Use shell for better Windows compatibility
+        });
 
-          // Quit the app to allow installation
+        // Unref so parent can exit independently
+        installer.unref();
+
+        console.log('Installer launched in detached mode');
+
+        // Give installer a moment to start
+        setTimeout(() => {
+          console.log('Quitting app for installation...');
+
+          // Force quit all windows first
+          const { BrowserWindow } = require('electron');
+          BrowserWindow.getAllWindows().forEach(win => {
+            try {
+              win.destroy();
+            } catch (e) {
+              console.log('Window already closed');
+            }
+          });
+
+          // Then quit app forcefully
           setTimeout(() => {
-            console.log('Quitting app for installation...');
-            app.quit();
-          }, 1000);
+            app.exit(0); // Force exit with code 0
+          }, 200);
 
           resolve();
-        });
+        }, 500);
+
       } else if (ext === '.msi') {
         // For .msi installers, use msiexec
-        const args = ['/i', installerPath, '/qn', '/norestart'];
+        const args = ['/i', installerPath, '/qb', '/norestart'];
 
         console.log('Launching MSI installer');
 
-        execFile('msiexec', args, (error, stdout, stderr) => {
-          if (error) {
-            console.error('MSI installer error:', error);
-            reject(new Error('Failed to launch MSI installer: ' + error.message));
-            return;
-          }
+        const { spawn } = require('child_process');
 
-          console.log('MSI installer launched successfully');
+        const installer = spawn('msiexec', args, {
+          detached: true,
+          stdio: 'ignore',
+          shell: true
+        });
 
-          // Quit the app to allow installation
+        installer.unref();
+
+        setTimeout(() => {
+          console.log('Quitting app for installation...');
+
+          const { BrowserWindow } = require('electron');
+          BrowserWindow.getAllWindows().forEach(win => {
+            try {
+              win.destroy();
+            } catch (e) {
+              console.log('Window already closed');
+            }
+          });
+
           setTimeout(() => {
-            app.quit();
-          }, 1000);
+            app.exit(0);
+          }, 200);
 
           resolve();
-        });
+        }, 500);
+
       } else {
         reject(new Error('Unsupported installer format. Expected .exe or .msi'));
       }
