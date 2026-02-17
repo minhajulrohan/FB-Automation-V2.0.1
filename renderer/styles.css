@@ -1702,3 +1702,51 @@ textarea.form-control {
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 186, 124, 0.3);
 }
+
+/* User Agent Generator Styles */
+#generateUABtn {
+  background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+}
+
+#generateUABtn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #5a4bd1, #8f83f5);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(108, 92, 231, 0.4);
+}
+
+#generateUABtn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+#accountUserAgent[readonly] {
+  cursor: not-allowed;
+  background: var(--bg-tertiary, #181825);
+  color: var(--text-secondary, #bac2de);
+  font-family: monospace;
+  font-size: 11px;
+  border: 1px solid var(--border, #45475a);
+  transition: border-color 0.3s ease;
+}
+
+#uaDeviceLabel {
+  font-size: 13px;
+  font-weight: 600;
+  transition: color 0.3s ease;
+}
+
+/* UA column in accounts table */
+#accountsTableBody td small {
+  font-size: 11px;
+  color: var(--text-secondary, #bac2de);
+  cursor: help;
+}

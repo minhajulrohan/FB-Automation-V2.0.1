@@ -213,6 +213,7 @@
                 <tr>
                   <th>Name</th>
                   <th>Status</th>
+                  <th>User Agent</th>
                   <th>Comments Today</th>
                   <th>Total Comments</th>
                   <th>Total Reacts</th>
@@ -222,7 +223,7 @@
               </thead>
               <tbody id="accountsTableBody">
                 <tr>
-                  <td colspan="7" class="text-center">No accounts added yet</td>
+                  <td colspan="8" class="text-center">No accounts added yet</td>
                 </tr>
               </tbody>
             </table>
@@ -889,19 +890,35 @@
 
         <div class="form-post">
           <label>Proxy (optional):</label>
-          <input type="text" id="accountProxy" class="form-control" placeholder="http://username:password@host:port">
+          <input type="text" id="accountProxy" class="form-control" placeholder="hostname:port:login:password">
           <small>
-            <strong>Format:</strong> http://username:password@host:port<br>
-            <strong>Example:</strong> http://user:pass@gw.dataimpulse.com:10000<br>
-            Leave empty to use your actual IP address. Each account can have different proxy for different IP addresses.
-            <a href="#" onclick="window.api.openExternal('file://PROXY-GUIDE.md'); return false;">Read full proxy
-              guide</a>
+            <strong>Format:</strong> hostname:port:login:password<br>
+            <strong>Example:</strong> proxy.example.com:8080:myuser:mypass<br>
+            Leave empty to use your actual IP address. Each account can have a different proxy for a different IP.
           </small>
         </div>
 
         <div class="form-post">
-          <label>User Agent (optional):</label>
-          <input type="text" id="accountUserAgent" class="form-control" placeholder="Leave empty for default">
+          <label>User Agent (required): <span style="color:#e74c3c;">*</span></label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button type="button" id="generateUABtn" class="btn btn-secondary"
+              style="white-space:nowrap;min-width:140px;">
+              🎲 Generate UA
+            </button>
+            <span id="uaDeviceLabel" style="font-size:12px;color:#aaa;font-style:italic;">No UA generated yet</span>
+          </div>
+          <input type="text" id="accountUserAgent" class="form-control" readonly
+            placeholder="Click 'Generate UA' to auto-generate a unique User Agent"
+            style="margin-top:8px;cursor:not-allowed;background:var(--bg-tertiary,#181825);font-size:11px;font-family:monospace;">
+          <div id="uaGenerating" style="display:none;margin-top:6px;color:#f5a623;font-size:12px;">
+            ⏳ Fetching latest browser version...
+          </div>
+          <small id="uaStatus" style="color:#e74c3c;font-weight:600;display:none;margin-top:4px;display:none;">
+            ⚠️ Duplicate detected — regenerating...
+          </small>
+          <small style="color:#888;margin-top:4px;display:block;">
+            Each account gets a unique device profile. Same UA cannot be shared between accounts.
+          </small>
         </div>
 
         <button id="saveAccountBtn" class="btn btn-primary">Save Account</button>

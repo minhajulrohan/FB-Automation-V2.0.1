@@ -54,6 +54,34 @@ class AutomationWorker {
   async initBrowser() {
     this.logger.info(`Initializing browser for ${this.account.name}`);
 
+    // ── Device profile resolution ──────────────────────────────────────────
+    // deviceProfile is saved with the account at add-time from the UA generator
+    const profile = this.account.deviceProfile || {};
+    const deviceType = profile.type || 'windows-chrome';
+
+    // Resolve viewport — use saved profile or derive from UA type
+    let viewportW = profile.viewportW || 1920;
+    let viewportH = profile.viewportH || 1080;
+    let platform = profile.platform || 'Win32';
+
+    // Fallback: derive from UA string if deviceProfile not saved (older accounts)
+    if (!this.account.deviceProfile && this.account.userAgent) {
+      const ua = this.account.userAgent;
+      if (ua.includes('iPad')) {
+        viewportW = 1366; viewportH = 768; platform = 'iPad';
+      } else if (ua.includes('Macintosh')) {
+        viewportW = 1440; viewportH = 900; platform = 'MacIntel';
+      } else {
+        viewportW = 1920; viewportH = 1080; platform = 'Win32';
+      }
+    }
+
+    const accountUserAgent = this.account.userAgent ||
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36';
+
+    this.logger.info(`Device: ${deviceType} | Viewport: ${viewportW}x${viewportH} | Platform: ${platform}`);
+    this.logger.info(`UA: ${accountUserAgent.substring(0, 90)}...`);
+
     const launchOptions = {
       headless: this.settings.headless,
       args: [
@@ -61,27 +89,60 @@ class AutomationWorker {
         '--disable-dev-shm-usage',
         '--no-sandbox',
         '--disable-setuid-sandbox',
-        '--disable-web-security'
+        '--disable-web-security',
+        `--window-size=${viewportW},${viewportH}`,
+        '--force-device-scale-factor=1'
       ]
     };
 
     if (this.account.proxy) {
-      launchOptions.proxy = {
-        server: this.account.proxy
-      };
+      launchOptions.proxy = { server: this.account.proxy };
+      this.logger.info(`Proxy: ${this.account.proxy}`);
     }
 
     this.browser = await chromium.launch(launchOptions);
 
     const contextOptions = {
-      viewport: { width: 1366, height: 768 },
-      userAgent: this.account.userAgent ||
-        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: viewportW, height: viewportH },
+      screen: { width: viewportW, height: viewportH },
+      userAgent: accountUserAgent,
       locale: 'en-US',
-      timezoneId: 'America/New_York'
+      timezoneId: 'America/New_York',
+      deviceScaleFactor: 1,
+      isMobile: false,
+      hasTouch: false
     };
 
     this.context = await this.browser.newContext(contextOptions);
+
+    // Inject per-device fingerprint to match the UA profile exactly
+    const injectViewportW = viewportW;
+    const injectViewportH = viewportH;
+    const injectPlatform = platform;
+    const injectDeviceType = deviceType;
+
+    await this.context.addInitScript(({ w, h, plat, dtype }) => {
+      // Screen dimensions match viewport
+      Object.defineProperty(screen, 'width', { get: () => w });
+      Object.defineProperty(screen, 'height', { get: () => h });
+      Object.defineProperty(screen, 'availWidth', { get: () => w });
+      Object.defineProperty(screen, 'availHeight', { get: () => h - 40 });
+
+      // Platform string matches device
+      Object.defineProperty(navigator, 'platform', { get: () => plat });
+
+      // Touch: always 0 (desktop mode even for iPad UA)
+      Object.defineProperty(navigator, 'maxTouchPoints', { get: () => 0 });
+
+      // Hardware concurrency — realistic per device
+      const cores = dtype.includes('mac') ? 8 : dtype.includes('ipad') ? 6 : 8;
+      Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => cores });
+
+      // Device memory — realistic
+      const mem = dtype.includes('ipad') ? 4 : 8;
+      Object.defineProperty(navigator, 'deviceMemory', { get: () => mem });
+
+    }, { w: injectViewportW, h: injectViewportH, plat: injectPlatform, dtype: injectDeviceType });
 
     // Fix and add cookies
     try {

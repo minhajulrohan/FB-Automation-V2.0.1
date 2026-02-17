@@ -22,6 +22,7 @@ class DatabaseManager {
         cookies TEXT NOT NULL,
         proxy TEXT,
         userAgent TEXT,
+        deviceProfile TEXT,
         enabled INTEGER DEFAULT 1,
         status TEXT DEFAULT 'active',
         commentsToday INTEGER DEFAULT 0,
@@ -32,6 +33,11 @@ class DatabaseManager {
         createdAt INTEGER DEFAULT (strftime('%s', 'now'))
       )
     `);
+
+    // Migrate: add deviceProfile column if it doesn't exist (for existing databases)
+    try {
+      this.db.exec(`ALTER TABLE accounts ADD COLUMN deviceProfile TEXT`);
+    } catch (_) { /* column already exists */ }
 
     // Posts table (changed from groups)
     this.db.exec(`
@@ -153,8 +159,8 @@ class DatabaseManager {
     const fixedCookies = CookieFixer.cleanCookies(account.cookies);
 
     const stmt = this.db.prepare(`
-      INSERT INTO accounts (id, name, cookies, proxy, userAgent)
-      VALUES (?, ?, ?, ?, ?)
+      INSERT INTO accounts (id, name, cookies, proxy, userAgent, deviceProfile)
+      VALUES (?, ?, ?, ?, ?, ?)
     `);
 
     stmt.run(
@@ -162,7 +168,8 @@ class DatabaseManager {
       account.name,
       this.encrypt(JSON.stringify(fixedCookies)),
       account.proxy || null,
-      account.userAgent || null
+      account.userAgent || null,
+      account.deviceProfile ? JSON.stringify(account.deviceProfile) : null
     );
 
     return { id, ...account, cookies: fixedCookies };
@@ -176,7 +183,8 @@ class DatabaseManager {
       ...acc,
       cookies: JSON.parse(this.decrypt(acc.cookies)),
       enabled: Boolean(acc.enabled),
-      checkpointDetected: Boolean(acc.checkpointDetected)
+      checkpointDetected: Boolean(acc.checkpointDetected),
+      deviceProfile: acc.deviceProfile ? JSON.parse(acc.deviceProfile) : null
     }));
   }
 

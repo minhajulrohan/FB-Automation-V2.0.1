@@ -165,11 +165,150 @@ function updateStatusBadge(status, text) {
 }
 
 // Account Management
+// ─── UA Generator Engine ────────────────────────────────────────────────────
+
+// Device profile pool — browser version slots filled at generate-time
+const UA_DEVICE_PROFILES = [
+  {
+    label: '💻 Windows – Chrome',
+    type: 'windows-chrome',
+    viewport: { width: 1920, height: 1080 },
+    platform: 'Win32',
+    buildUA: (chromeVer) =>
+      `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36`
+  },
+  {
+    label: '💻 Windows – Edge',
+    type: 'windows-edge',
+    viewport: { width: 1920, height: 1080 },
+    platform: 'Win32',
+    buildUA: (chromeVer, edgeVer) =>
+      `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36 Edg/${edgeVer}`
+  },
+  {
+    label: '💻 Windows – Firefox',
+    type: 'windows-firefox',
+    viewport: { width: 1920, height: 1080 },
+    platform: 'Win32',
+    buildUA: (_, __, ffVer) =>
+      `Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:${ffVer}) Gecko/20100101 Firefox/${ffVer}`
+  },
+  {
+    label: '🖥️ MacBook – Chrome',
+    type: 'mac-chrome',
+    viewport: { width: 1440, height: 900 },
+    platform: 'MacIntel',
+    buildUA: (chromeVer) =>
+      `Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36`
+  },
+  {
+    label: '🖥️ MacBook – Safari',
+    type: 'mac-safari',
+    viewport: { width: 1440, height: 900 },
+    platform: 'MacIntel',
+    buildUA: (_, __, ___, safariVer) =>
+      `Mozilla/5.0 (Macintosh; Intel Mac OS X 14_3) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${safariVer} Safari/605.1.15`
+  },
+  {
+    label: '📱 iPad Mini',
+    type: 'ipad-mini',
+    viewport: { width: 1366, height: 768 },
+    platform: 'iPad',
+    buildUA: (_, __, ___, safariVer) =>
+      `Mozilla/5.0 (iPad; CPU OS 17_3 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/${safariVer} Mobile/15E148 Safari/604.1`
+  },
+  {
+    label: '💼 Surface Pro – Edge',
+    type: 'surface-edge',
+    viewport: { width: 1368, height: 912 },
+    platform: 'Win32',
+    buildUA: (chromeVer, edgeVer) =>
+      `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36 Edg/${edgeVer}`
+  },
+  {
+    label: '💼 Surface Pro – Chrome',
+    type: 'surface-chrome',
+    viewport: { width: 1368, height: 912 },
+    platform: 'Win32',
+    buildUA: (chromeVer) =>
+      `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${chromeVer} Safari/537.36`
+  }
+];
+
+// Fetch latest browser versions from GitHub / public APIs (network-free fallback included)
+async function fetchLatestBrowserVersions() {
+  // Stable fallback versions (updated to current as of early 2025)
+  let chromeVer = '132.0.6834.110';
+  let edgeVer = '132.0.2957.127';
+  let ffVer = '134.0';
+  let safariVer = '17.3';
+
+  try {
+    // Chrome: fetch from chromiumdash JSON
+    const chromeRes = await fetch(
+      'https://chromiumdash.appspot.com/fetch_releases?channel=Stable&platform=Windows&num=1&offset=0'
+    );
+    if (chromeRes.ok) {
+      const data = await chromeRes.json();
+      if (data && data[0] && data[0].version) {
+        chromeVer = data[0].version;
+      }
+    }
+  } catch (_) { }
+
+  try {
+    // Firefox: fetch from product-details API
+    const ffRes = await fetch('https://product-details.mozilla.org/1.0/firefox_versions.json');
+    if (ffRes.ok) {
+      const data = await ffRes.json();
+      if (data && data.LATEST_FIREFOX_VERSION) {
+        ffVer = data.LATEST_FIREFOX_VERSION;
+      }
+    }
+  } catch (_) { }
+
+  // Edge version typically tracks Chrome major
+  const chromeMajor = chromeVer.split('.')[0];
+  edgeVer = `${chromeMajor}.0.0.0`;
+
+  return { chromeVer, edgeVer, ffVer, safariVer };
+}
+
+// Generate a unique UA — auto-retries if duplicate found
+async function generateUniqueUA(existingAgents = []) {
+  const versions = await fetchLatestBrowserVersions();
+
+  // Shuffle profiles to randomize
+  const shuffled = [...UA_DEVICE_PROFILES].sort(() => Math.random() - 0.5);
+
+  for (const profile of shuffled) {
+    const ua = profile.buildUA(
+      versions.chromeVer,
+      versions.edgeVer,
+      versions.ffVer,
+      versions.safariVer
+    );
+    if (!existingAgents.includes(ua)) {
+      return { ua, profile };
+    }
+  }
+
+  // All profiles used — add random noise to make it unique
+  const profile = shuffled[0];
+  const minor = Math.floor(Math.random() * 9) + 1;
+  const noisedChrome = versions.chromeVer.replace(/\.(\d+)$/, `.${minor}`);
+  const ua = profile.buildUA(noisedChrome, versions.edgeVer, versions.ffVer, versions.safariVer);
+  return { ua, profile };
+}
+
+// ─── Account Management ──────────────────────────────────────────────────────
+
 function initAccountManagement() {
   const addAccountBtn = document.getElementById('addAccountBtn');
   const modal = document.getElementById('accountModal');
   const closeBtn = modal.querySelector('.close');
   const saveBtn = document.getElementById('saveAccountBtn');
+  const generateBtn = document.getElementById('generateUABtn');
 
   addAccountBtn.addEventListener('click', () => {
     openModal('accountModal');
@@ -179,25 +318,103 @@ function initAccountManagement() {
     closeModal('accountModal');
   });
 
+  // Generate UA button
+  generateBtn.addEventListener('click', async () => {
+    const uaInput = document.getElementById('accountUserAgent');
+    const uaLabel = document.getElementById('uaDeviceLabel');
+    const uaGenerating = document.getElementById('uaGenerating');
+    const uaStatus = document.getElementById('uaStatus');
+
+    generateBtn.disabled = true;
+    generateBtn.textContent = '⏳ Generating...';
+    uaGenerating.style.display = 'block';
+    uaStatus.style.display = 'none';
+    uaInput.style.borderColor = '';
+
+    try {
+      const existingAccounts = await ipcRenderer.invoke('get-accounts');
+      const existingAgents = existingAccounts.map(a => a.userAgent).filter(Boolean);
+
+      const { ua, profile } = await generateUniqueUA(existingAgents);
+
+      uaInput.value = ua;
+      uaLabel.textContent = `✅ ${profile.label}`;
+      uaLabel.style.color = '#27ae60';
+      uaInput.style.borderColor = '#27ae60';
+
+      // Store device profile data for worker.js
+      uaInput.dataset.deviceType = profile.type;
+      uaInput.dataset.viewportW = profile.viewport.width;
+      uaInput.dataset.viewportH = profile.viewport.height;
+      uaInput.dataset.platform = profile.platform;
+
+    } catch (err) {
+      uaLabel.textContent = '❌ Failed to generate. Try again.';
+      uaLabel.style.color = '#e74c3c';
+    } finally {
+      generateBtn.disabled = false;
+      generateBtn.textContent = '🎲 Generate UA';
+      uaGenerating.style.display = 'none';
+    }
+  });
+
   saveBtn.addEventListener('click', async () => {
     const name = document.getElementById('accountName').value;
     const cookiesText = document.getElementById('accountCookies').value;
-    const proxy = document.getElementById('accountProxy').value;
-    const userAgent = document.getElementById('accountUserAgent').value;
+    const proxyRaw = document.getElementById('accountProxy').value.trim();
+    const uaInput = document.getElementById('accountUserAgent');
+    const userAgent = uaInput.value;
 
     if (!name || !cookiesText) {
-      alert('Please fill in required fields');
+      alert('Please fill in required fields (Name and Cookies)');
       return;
+    }
+
+    // User Agent is required
+    if (!userAgent) {
+      alert('⚠️ User Agent is required!\n\nPlease click the "🎲 Generate UA" button first.');
+      document.getElementById('generateUABtn').focus();
+      return;
+    }
+
+    // Final duplicate check before saving
+    const existingAccounts = await ipcRenderer.invoke('get-accounts');
+    const isDuplicateUA = existingAccounts.some(acc => acc.userAgent === userAgent);
+    if (isDuplicateUA) {
+      alert('⚠️ This User Agent is already used by another account!\n\nPlease click "🎲 Generate UA" to generate a new unique one.');
+      return;
+    }
+
+    // Parse proxy: support hostname:port:login:password format
+    let proxyFormatted = null;
+    if (proxyRaw) {
+      const parts = proxyRaw.split(':');
+      if (parts.length === 4) {
+        const [hostname, port, login, password] = parts;
+        proxyFormatted = `http://${login}:${password}@${hostname}:${port}`;
+      } else if (proxyRaw.startsWith('http://') || proxyRaw.startsWith('https://') || proxyRaw.startsWith('socks5://')) {
+        proxyFormatted = proxyRaw;
+      } else {
+        alert('⚠️ Invalid proxy format!\n\nExpected: hostname:port:login:password\nExample: proxy.example.com:8080:myuser:mypass\n\nOr leave empty if not using proxy.');
+        return;
+      }
     }
 
     try {
       const cookies = JSON.parse(cookiesText);
 
+      // Include device profile metadata with account
       const account = {
         name,
         cookies,
-        proxy: proxy || null,
-        userAgent: userAgent || null
+        proxy: proxyFormatted || null,
+        userAgent: userAgent,
+        deviceProfile: {
+          type: uaInput.dataset.deviceType || 'windows-chrome',
+          viewportW: parseInt(uaInput.dataset.viewportW) || 1920,
+          viewportH: parseInt(uaInput.dataset.viewportH) || 1080,
+          platform: uaInput.dataset.platform || 'Win32'
+        }
       };
 
       await ipcRenderer.invoke('add-account', account);
@@ -205,7 +422,8 @@ function initAccountManagement() {
       clearAccountForm();
       loadAccounts();
       loadStats();
-      showSuccessModal('Account Added!', `Account "${name}" has been successfully added and is ready to use.`);
+      const deviceLabel = document.getElementById('uaDeviceLabel')?.textContent || '';
+      showSuccessModal('Account Added!', `Account "${name}" has been successfully added.\n\nDevice: ${deviceLabel}`);
     } catch (error) {
       alert('Invalid cookies JSON format');
     }
@@ -225,12 +443,26 @@ function renderAccountsTable() {
     return;
   }
 
-  tbody.innerHTML = accounts.map(acc => `
+  tbody.innerHTML = accounts.map(acc => {
+    // Extract short UA label for display
+    let uaLabel = 'Not set';
+    if (acc.userAgent) {
+      if (acc.userAgent.includes('iPad')) uaLabel = '📱 iPad Mini';
+      else if (acc.userAgent.includes('Windows NT') && (acc.userAgent.includes('Edg/') || acc.userAgent.includes('EdgA/'))) uaLabel = '💼 Surface/Win – Edge';
+      else if (acc.userAgent.includes('Windows NT') && acc.userAgent.includes('Firefox')) uaLabel = '💻 Windows – Firefox';
+      else if (acc.userAgent.includes('Windows NT') && acc.userAgent.includes('Chrome')) uaLabel = '💻 Windows – Chrome';
+      else if (acc.userAgent.includes('Macintosh') && acc.userAgent.includes('Chrome')) uaLabel = '🖥️ MacBook – Chrome';
+      else if (acc.userAgent.includes('Macintosh')) uaLabel = '🖥️ MacBook – Safari';
+      else if (acc.userAgent.includes('Linux')) uaLabel = '🐧 Linux – Chrome';
+      else uaLabel = acc.userAgent.substring(0, 30) + '...';
+    }
+    return `
     <tr>
       <td>${acc.name}</td>
       <td>
         <span class="badge ${getStatusBadgeClass(acc)}">${getStatusText(acc)}</span>
       </td>
+      <td><small title="${acc.userAgent || ''}">${uaLabel}</small></td>
       <td>${acc.commentsToday} / ${settings.maxCommentsPerAccount || 20}</td>
       <td>${acc.totalComments}</td>
       <td>${acc.totalReacts}</td>
@@ -242,7 +474,8 @@ function renderAccountsTable() {
         <button class="btn btn-sm btn-danger" onclick="deleteAccount('${acc.id}')">🗑️</button>
       </td>
     </tr>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function getStatusBadgeClass(acc) {
@@ -276,7 +509,31 @@ function clearAccountForm() {
   document.getElementById('accountName').value = '';
   document.getElementById('accountCookies').value = '';
   document.getElementById('accountProxy').value = '';
-  document.getElementById('accountUserAgent').value = '';
+
+  const uaInput = document.getElementById('accountUserAgent');
+  if (uaInput) {
+    uaInput.value = '';
+    uaInput.style.borderColor = '';
+    uaInput.dataset.deviceType = '';
+    uaInput.dataset.viewportW = '';
+    uaInput.dataset.viewportH = '';
+    uaInput.dataset.platform = '';
+  }
+
+  const uaLabel = document.getElementById('uaDeviceLabel');
+  if (uaLabel) {
+    uaLabel.textContent = 'No UA generated yet';
+    uaLabel.style.color = '#aaa';
+  }
+
+  const uaStatus = document.getElementById('uaStatus');
+  if (uaStatus) uaStatus.style.display = 'none';
+
+  const generateBtn = document.getElementById('generateUABtn');
+  if (generateBtn) {
+    generateBtn.disabled = false;
+    generateBtn.textContent = '🎲 Generate UA';
+  }
 }
 
 // Post Management
