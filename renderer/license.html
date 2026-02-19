@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>License Activation</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 40px;
+      max-width: 450px;
+      width: 100%;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 15px;
+      font-size: 40px;
+    }
+
+    h1 {
+      color: #2d3748;
+      font-size: 24px;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #718096;
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      color: #4a5568;
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 16px;
+      text-align: center;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      transition: all 0.3s;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn:disabled {
+      background: #cbd5e0;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .error {
+      background: #fed7d7;
+      border: 1px solid #fc8181;
+      color: #c53030;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .success {
+      background: #c6f6d5;
+      border: 1px solid #68d391;
+      color: #2f855a;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 20px;
+      font-size: 14px;
+      display: none;
+    }
+
+    .loading {
+      text-align: center;
+      color: #718096;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .spinner {
+      border: 3px solid #e2e8f0;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .help-text {
+      text-align: center;
+      color: #a0aec0;
+      font-size: 12px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="logo">
+      <div class="logo-icon">🔐</div>
+      <h1>License Activation</h1>
+      <p class="subtitle">Enter your license key to activate FB Automation Tool</p>
+    </div>
+
+    <form id="activationForm">
+      <div class="form-group">
+        <label for="licenseKey">License Key</label>
+        <input 
+          type="text" 
+          id="licenseKey" 
+          placeholder="XXXX-XXXX-XXXX-XXXX"
+          maxlength="19"
+          required
+          autocomplete="off"
+        >
+      </div>
+
+      <button type="submit" class="btn" id="activateBtn">
+        Activate License
+      </button>
+    </form>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Verifying license...</p>
+    </div>
+
+    <div class="error" id="error"></div>
+    <div class="success" id="success"></div>
+
+    <p class="help-text">
+      Format: XXXX-XXXX-XXXX-XXXX<br>
+      Contact support if you need a license key
+    </p>
+  </div>
+
+  <script>
+    const { ipcRenderer } = require('electron');
+    
+    const form = document.getElementById('activationForm');
+    const input = document.getElementById('licenseKey');
+    const btn = document.getElementById('activateBtn');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const success = document.getElementById('success');
+
+    // Auto-format license key
+    input.addEventListener('input', (e) => {
+      let value = e.target.value.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+      let formatted = '';
+      
+      for (let i = 0; i < value.length && i < 16; i++) {
+        if (i > 0 && i % 4 === 0) {
+          formatted += '-';
+        }
+        formatted += value[i];
+      }
+      
+      e.target.value = formatted;
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const licenseKey = input.value.trim();
+      
+      if (licenseKey.length < 19) {
+        showError('Please enter a complete license key');
+        return;
+      }
+      
+      // Show loading
+      loading.style.display = 'block';
+      error.style.display = 'none';
+      success.style.display = 'none';
+      btn.disabled = true;
+      input.disabled = true;
+      
+      try {
+        const result = await ipcRenderer.invoke('activate-license', licenseKey);
+        
+        loading.style.display = 'none';
+        
+        if (result.valid) {
+          showSuccess('License activated successfully!');
+          
+          setTimeout(() => {
+            // License window will be closed by main process
+          }, 1500);
+        } else {
+          showError(result.error || 'License activation failed');
+          btn.disabled = false;
+          input.disabled = false;
+        }
+      } catch (err) {
+        loading.style.display = 'none';
+        showError('Failed to activate license: ' + err.message);
+        btn.disabled = false;
+        input.disabled = false;
+      }
+    });
+
+    function showError(message) {
+      error.textContent = message;
+      error.style.display = 'block';
+      success.style.display = 'none';
+    }
+
+    function showSuccess(message) {
+      success.textContent = message;
+      success.style.display = 'block';
+      error.style.display = 'none';
+    }
+
+    // Focus input on load
+    window.addEventListener('load', () => {
+      input.focus();
+    });
+  </script>
+</body>
+</html>
