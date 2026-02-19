@@ -1,6 +1,6 @@
 {
   "name": "fb-comment-automation",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Facebook Group Comment Automation Desktop Software - With Enhanced Auto-Update System",
   "main": "src/main-with-license.js",
   "scripts": {

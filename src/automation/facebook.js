@@ -756,12 +756,18 @@ class FacebookAutomator {
 
       await this.randomDelay(2000, 3000);
 
-      // Random scroll pattern (3-5 scrolls)
-      const scrollCount = Math.floor(Math.random() * 3) + 3; // 3-5 scrolls
+      // STABLE: Always scroll for ~30 seconds total
+      const scrollDuration = 30000; // 30 seconds stable
+      const scrollCount = 5; // Fixed 5 scrolls
+      const delayBetweenScrolls = scrollDuration / scrollCount; // ~6 seconds each
+
+      this.logger.info(`  🔄 Starting ${scrollCount} smooth scrolls over ${scrollDuration / 1000} seconds...`);
 
       for (let i = 0; i < scrollCount; i++) {
-        // Scroll down random amount
-        const scrollAmount = Math.floor(Math.random() * 300) + 200; // 200-500px
+        // Smooth scroll down (400-600px for better visibility)
+        const scrollAmount = Math.floor(Math.random() * 200) + 400; // 400-600px
+
+        this.logger.info(`  📍 Scroll ${i + 1}/${scrollCount} (${scrollAmount}px)`);
 
         await this.page.evaluate((amount) => {
           window.scrollBy({
@@ -770,17 +776,12 @@ class FacebookAutomator {
           });
         }, scrollAmount);
 
-        // Wait between scrolls
-        await this.randomDelay(1500, 3000);
-
-        // Sometimes pause to "read" a post
-        if (Math.random() < 0.3) {
-          this.logger.info('  👀 Pausing to read a post...');
-          await this.randomDelay(2000, 4000);
-        }
+        // Wait stable time between scrolls
+        await this.randomDelay(delayBetweenScrolls - 500, delayBetweenScrolls + 500);
       }
 
-      // Scroll back to top
+      // Smooth scroll back to top
+      this.logger.info('  ⬆️ Scrolling back to top...');
       await this.page.evaluate(() => {
         window.scrollTo({
           top: 0,
@@ -788,7 +789,7 @@ class FacebookAutomator {
         });
       });
 
-      await this.randomDelay(1000, 2000);
+      await this.randomDelay(2000, 3000);
       this.logger.info('✅ Home feed scroll complete');
 
     } catch (error) {
@@ -807,34 +808,25 @@ class FacebookAutomator {
         timeout: 30000
       });
 
-      await this.randomDelay(3000, 5000);
+      await this.randomDelay(2000, 3000);
 
-      // Watch 2 reels
+      // Watch 2 reels, 5 seconds each
       const reelsToWatch = 2;
+      const watchDuration = 5000; // STABLE: 5 seconds per reel
+
+      this.logger.info(`  📺 Watching ${reelsToWatch} reels (${watchDuration / 1000}s each)...`);
 
       for (let i = 0; i < reelsToWatch; i++) {
-        this.logger.info(`  📹 Watching reel ${i + 1}/${reelsToWatch}...`);
+        this.logger.info(`  📹 Reel ${i + 1}/${reelsToWatch} - Watching for ${watchDuration / 1000}s...`);
 
-        // Watch for 25-35 seconds (random)
-        const watchDuration = Math.floor(Math.random() * 11000) + 25000; // 25-35 sec
+        // Watch the reel for exactly 5 seconds
+        await this.randomDelay(watchDuration - 200, watchDuration + 200); // 4.8-5.2 sec
 
-        // Sometimes scroll down a bit while watching
-        if (Math.random() < 0.5) {
-          await this.randomDelay(watchDuration / 3, watchDuration / 2);
-
-          await this.page.evaluate(() => {
-            const scrollAmount = Math.floor(Math.random() * 100) + 50;
-            window.scrollBy({
-              top: scrollAmount,
-              behavior: 'smooth'
-            });
-          });
-        }
-
-        await this.randomDelay(watchDuration / 2, watchDuration);
-
-        // Go to next reel (swipe up simulation)
+        // Scroll to next reel (except on last one)
         if (i < reelsToWatch - 1) {
+          this.logger.info(`  ⬇️ Scrolling to next reel...`);
+
+          // Smooth scroll to next reel (full viewport height)
           await this.page.evaluate(() => {
             window.scrollBy({
               top: window.innerHeight,
@@ -842,7 +834,8 @@ class FacebookAutomator {
             });
           });
 
-          await this.randomDelay(2000, 3000);
+          // Wait for scroll animation + next reel to load
+          await this.randomDelay(1500, 2000);
         }
       }
 

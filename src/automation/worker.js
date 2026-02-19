@@ -775,6 +775,32 @@ class AutomationWorker {
 
     this.logger.info(`Account ${this.account.name}: Finished processing all posts`);
 
+    // =====================================================
+    // FINAL HOME SCROLL BEFORE DISABLING ACCOUNT
+    // Natural behavior: Browse home feed before logging off
+    // =====================================================
+    try {
+      this.logger.info(`🏁 Final activity: Scrolling home feed before account disable...`);
+
+      this.sendToRenderer('log', {
+        level: 'info',
+        message: `[${this.account.name}] All tasks complete. Doing final home scroll...`,
+        timestamp: Date.now()
+      });
+
+      // Final home scroll
+      await this.fbAutomator.scrollHomeFeed();
+
+      // Small delay after scrolling
+      await this.sleep(this.randomDelay(3, 5) * 1000);
+
+      this.logger.info(`✅ Final home scroll complete. Account ready to disable.`);
+
+    } catch (error) {
+      this.logger.warn(`⚠️ Final home scroll failed: ${error.message}`);
+      // Continue anyway - not critical
+    }
+
     try {
       this.logger.info(`Auto-disabling account ${this.account.name} as tasks are complete.`);
 

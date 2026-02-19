@@ -48,6 +48,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initLicenseInfo();
   loadInitialData();
   setupIPCListeners();
+
+  // Auto-check for updates on startup (silent check)
+  setTimeout(() => {
+    checkForUpdatesInBackground();
+  }, 3000); // Wait 3 seconds after load
 });
 
 // Populate account dropdowns in modals
@@ -1624,6 +1629,209 @@ async function checkForUpdates() {
       </div>
     `;
   }
+}
+
+// =====================================================
+// BACKGROUND UPDATE CHECK WITH NOTIFICATION
+// =====================================================
+async function checkForUpdatesInBackground() {
+  try {
+    const result = await ipcRenderer.invoke('check-for-updates');
+
+    if (result.success && result.updateAvailable) {
+      // Show notification popup
+      showUpdateNotification(result);
+    }
+  } catch (error) {
+    console.error('Background update check failed:', error);
+  }
+}
+
+function showUpdateNotification(updateInfo) {
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.id = 'updateNotification';
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px 25px;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+    z-index: 10000;
+    min-width: 320px;
+    max-width: 400px;
+    animation: slideIn 0.5s ease-out;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  `;
+
+  notification.innerHTML = `
+    <style>
+      @keyframes slideIn {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      @keyframes slideOut {
+        from {
+          transform: translateX(0);
+          opacity: 1;
+        }
+        to {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+      }
+      .update-notification-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+      }
+      .update-notification-icon {
+        font-size: 28px;
+        margin-right: 12px;
+      }
+      .update-notification-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+      }
+      .update-notification-body {
+        margin-bottom: 15px;
+        font-size: 14px;
+        opacity: 0.95;
+      }
+      .update-notification-versions {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 15px;
+        font-size: 13px;
+      }
+      .update-notification-version {
+        flex: 1;
+        background: rgba(255,255,255,0.15);
+        padding: 8px 10px;
+        border-radius: 6px;
+        text-align: center;
+      }
+      .update-notification-version-label {
+        font-size: 11px;
+        opacity: 0.8;
+        margin-bottom: 4px;
+      }
+      .update-notification-version-number {
+        font-weight: 600;
+        font-size: 15px;
+      }
+      .update-notification-actions {
+        display: flex;
+        gap: 10px;
+      }
+      .update-notification-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+      .update-notification-btn-primary {
+        background: white;
+        color: #667eea;
+      }
+      .update-notification-btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(255,255,255,0.3);
+      }
+      .update-notification-btn-secondary {
+        background: rgba(255,255,255,0.15);
+        color: white;
+      }
+      .update-notification-btn-secondary:hover {
+        background: rgba(255,255,255,0.25);
+      }
+      .update-notification-close {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background: rgba(255,255,255,0.2);
+        border: none;
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        cursor: pointer;
+        font-size: 16px;
+        line-height: 1;
+        transition: background 0.2s;
+      }
+      .update-notification-close:hover {
+        background: rgba(255,255,255,0.3);
+      }
+    </style>
+    
+    <button class="update-notification-close" onclick="dismissUpdateNotification()">×</button>
+    
+    <div class="update-notification-header">
+      <div class="update-notification-icon">🎉</div>
+      <h3 class="update-notification-title">Update Available!</h3>
+    </div>
+    
+    <div class="update-notification-body">
+      A new version of FB Comment Automation is ready to install.
+    </div>
+    
+    <div class="update-notification-versions">
+      <div class="update-notification-version">
+        <div class="update-notification-version-label">Current</div>
+        <div class="update-notification-version-number">${updateInfo.currentVersion}</div>
+      </div>
+      <div class="update-notification-version">
+        <div class="update-notification-version-label">Latest</div>
+        <div class="update-notification-version-number">${updateInfo.latestVersion}</div>
+      </div>
+    </div>
+    
+    <div class="update-notification-actions">
+      <button class="update-notification-btn update-notification-btn-primary" onclick="openUpdateModal()">
+        ⬇️ Update Now
+      </button>
+      <button class="update-notification-btn update-notification-btn-secondary" onclick="dismissUpdateNotification()">
+        Later
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(notification);
+
+  // Auto-dismiss after 30 seconds
+  setTimeout(() => {
+    dismissUpdateNotification();
+  }, 30000);
+}
+
+function dismissUpdateNotification() {
+  const notification = document.getElementById('updateNotification');
+  if (notification) {
+    notification.style.animation = 'slideOut 0.3s ease-in';
+    setTimeout(() => {
+      notification.remove();
+    }, 300);
+  }
+}
+
+function openUpdateModal() {
+  dismissUpdateNotification();
+  document.getElementById('checkUpdateBtn').click();
 }
 
 async function downloadAndInstallUpdate(downloadUrl) {
