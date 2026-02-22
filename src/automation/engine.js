@@ -1,4 +1,5 @@
 const AutomationWorker = require('./worker');
+const GroupAutomationWorker = require('./group-worker');
 const cron = require('node-cron');
 
 class AutomationEngine {
@@ -71,7 +72,6 @@ class AutomationEngine {
             timestamp: Date.now()
           });
 
-          // Stop automation
           await this.stop();
           return;
         }
@@ -88,27 +88,51 @@ class AutomationEngine {
           continue;
         }
 
+        // Determine automation mode
+        const automationMode = settings.automationMode || 'posts';
+        this.logger.info(`Running in ${automationMode.toUpperCase()} mode`);
+
+        this.sendToRenderer('log', {
+          level: 'info',
+          message: `🚀 Automation Mode: ${automationMode === 'groups' ? '📂 Facebook Groups' : '📌 Post Links'}`,
+          timestamp: Date.now()
+        });
+
         // Process all accounts in parallel
         const workerPromises = accounts.map(async (account) => {
           if (this.workers.has(account.id)) return;
 
-          const posts = this.db.getPostsByAccount(account.id).filter(p => p.enabled);
-          if (posts.length === 0) return;
-
           try {
-            const worker = new AutomationWorker(
-              account,
-              posts,
-              settings,
-              this.db,
-              this.logger,
-              this.sendToRenderer
-            );
+            let worker;
+
+            if (automationMode === 'groups') {
+              // Group mode: process Facebook groups
+              const groups = this.db.getGroupsByAccount(account.id).filter(g => g.enabled);
+              if (groups.length === 0) {
+                this.logger.info(`Account ${account.name} has no groups assigned, skipping`);
+                return;
+              }
+
+              worker = new GroupAutomationWorker(
+                account, groups, settings, this.db, this.logger, this.sendToRenderer
+              );
+            } else {
+              // Post mode: process post URLs (default)
+              const posts = this.db.getPostsByAccount(account.id).filter(p => p.enabled);
+              if (posts.length === 0) {
+                this.logger.info(`Account ${account.name} has no posts assigned, skipping`);
+                return;
+              }
+
+              worker = new AutomationWorker(
+                account, posts, settings, this.db, this.logger, this.sendToRenderer
+              );
+            }
 
             this.workers.set(account.id, worker);
             await worker.run();
             this.workers.delete(account.id);
-            this.logger.info(`Account ${account.name} finished all posts.`);
+            this.logger.info(`Account ${account.name} finished all tasks.`);
           } catch (error) {
             this.logger.error(`Error in parallel worker for ${account.name}:`, error);
             this.workers.delete(account.id);

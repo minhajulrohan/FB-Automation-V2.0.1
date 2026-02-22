@@ -88,9 +88,10 @@ function getBundledChromiumPath() {
 }
 
 class AutomationWorker {
-  constructor(account, posts, settings, db, logger, sendToRenderer) {
+  constructor(account, posts, settings, db, logger, sendToRenderer, groups = []) {
     this.account = account;
     this.posts = posts;
+    this.groups = groups;
     this.settings = settings;
     this.db = db;
     this.logger = logger;
@@ -120,11 +121,22 @@ class AutomationWorker {
     try {
       this.logger.info(`========================================`);
       this.logger.info(`STARTING: Account ${this.account.name}`);
-      this.logger.info(`Posts to process: ${this.posts.length}`);
+
+      const mode = this.settings.automationMode || 'posts';
+      if (mode === 'groups') {
+        this.logger.info(`Mode: GROUP AUTOMATION | Groups: ${this.groups.length}`);
+      } else {
+        this.logger.info(`Posts to process: ${this.posts.length}`);
+      }
       this.logger.info(`========================================`);
 
       await this.initBrowser();
-      await this.processPosts();
+
+      if (mode === 'groups') {
+        await this.processGroups();
+      } else {
+        await this.processPosts();
+      }
 
       this.logger.info(`========================================`);
       this.logger.info(`COMPLETED: Account ${this.account.name}`);
@@ -824,6 +836,199 @@ class AutomationWorker {
       this.logger.error(`Failed to auto-disable account: ${err.message}`);
     }
 
+  }
+
+  async processGroups() {
+    if (this.groups.length === 0) {
+      this.logger.info(`Account ${this.account.name}: No groups assigned, skipping`);
+      return;
+    }
+
+    const shuffledGroups = this.shuffleArray([...this.groups]);
+    this.logger.info(`Account ${this.account.name}: Processing ${shuffledGroups.length} groups`);
+
+    const scrollCount = this.settings.groupScrollCount || 5;
+    const maxAgeMinutes = this.settings.groupPostMaxAge || 60;
+
+    for (const group of shuffledGroups) {
+      // Check daily limit
+      const currentAccount = this.db.getAccounts().find(a => a.id === this.account.id);
+      if (!currentAccount || currentAccount.commentsToday >= this.settings.maxCommentsPerAccount) {
+        this.logger.info(`Account ${this.account.name} reached daily limit, stopping group processing`);
+        break;
+      }
+
+      try {
+        this.sendToRenderer('log', {
+          level: 'info',
+          message: `[${this.account.name}] Navigating to group: ${group.name || group.url}`,
+          timestamp: Date.now()
+        });
+
+        // Navigate to group
+        await this.fbAutomator.navigateToGroup(group.url);
+
+        // Smooth scroll to load posts
+        await this.fbAutomator.smoothScrollGroup(scrollCount);
+
+        // Find recent posts
+        const recentPosts = await this.fbAutomator.findRecentGroupPosts(maxAgeMinutes);
+
+        if (recentPosts.length === 0) {
+          this.logger.info(`No recent posts found in group: ${group.url}`);
+          this.sendToRenderer('log', {
+            level: 'warning',
+            message: `[${this.account.name}] No recent posts found in group`,
+            timestamp: Date.now()
+          });
+          continue;
+        }
+
+        this.logger.info(`Found ${recentPosts.length} recent posts, will comment on them`);
+
+        // Comment on each recent post
+        for (const postUrl of recentPosts) {
+          // Check daily limit again
+          const acc = this.db.getAccounts().find(a => a.id === this.account.id);
+          if (!acc || acc.commentsToday >= this.settings.maxCommentsPerAccount) break;
+
+          // Check if already commented on this URL
+          if (this.db.hasPostedToUrl(this.account.id, postUrl)) {
+            this.logger.info(`Already commented on ${postUrl}, skipping`);
+            continue;
+          }
+
+          try {
+            this.sendToRenderer('log', {
+              level: 'info',
+              message: `[${this.account.name}] Commenting on group post...`,
+              timestamp: Date.now()
+            });
+
+            // STEP 1: Random starter comment
+            const randomComment = this.getRandomStarter();
+            const commentResult = await this.fbAutomator.processGroupPost(postUrl, randomComment);
+
+            if (!commentResult.success) {
+              this.logger.warn(`Failed to comment on ${postUrl}`);
+              continue;
+            }
+
+            await this.sleep(this.randomDelay(2, 5) * 1000);
+
+            // STEP 2: Edit to full template
+            const templateComment = await this.getTemplateComment();
+            const finalComment = `Hi ${templateComment}`;
+            const editResult = await this.fbAutomator.editLastComment(finalComment);
+
+            if (!editResult.success) {
+              this.logger.warn('Failed to edit group comment');
+            }
+
+            await this.sleep(this.randomDelay(2, 4) * 1000);
+
+            // STEP 3: React if enabled
+            if (this.settings.autoReact && this.shouldReact()) {
+              const reactionDelay = this.randomDelay(
+                this.settings.reactionDelayMin,
+                this.settings.reactionDelayMax
+              );
+              await this.sleep(reactionDelay * 1000);
+              const reaction = this.getRandomReaction();
+              const reactResult = await this.fbAutomator.reactToComment(reaction);
+
+              if (reactResult.success) {
+                this.db.incrementAccountReacts(this.account.id);
+              }
+            }
+
+            // STEP 4: Check status
+            const status = await this.fbAutomator.checkCommentStatus(finalComment);
+
+            this.db.logActivity({
+              accountId: this.account.id,
+              postId: group.id,
+              postUrl: postUrl,
+              action: 'comment',
+              status: status,
+              comment: finalComment
+            });
+
+            if ((status === 'pending' || status === 'declined') && this.settings.autoDeletePending) {
+              await this.sleep(2000);
+              await this.fbAutomator.deleteLastComment();
+              this.sendToRenderer('log', {
+                level: 'warning',
+                message: `[${this.account.name}] Deleted ${status} group comment`,
+                timestamp: Date.now()
+              });
+            } else if (status === 'success') {
+              this.db.incrementAccountComments(this.account.id);
+              this.db.incrementGroupComments(group.id);
+              this.db.markUrlAsPosted(this.account.id, postUrl);
+
+              this.sendToRenderer('log', {
+                level: 'success',
+                message: `[${this.account.name}] Group post comment successful!`,
+                timestamp: Date.now()
+              });
+              this.sendToRenderer('stats-update', this.db.getStats());
+              this.fbAutomator.incrementCommentCounters();
+              await this.fbAutomator.checkAndTakeBreak();
+            }
+
+            // Delay between posts
+            const delay = this.randomDelay(this.settings.commentDelayMin, this.settings.commentDelayMax);
+            await this.sleep(delay * 1000);
+
+          } catch (postError) {
+            this.logger.error(`Error on group post ${postUrl}:`, postError.message);
+            if (postError.message.includes('checkpoint') || postError.message.includes('restricted')) {
+              throw postError;
+            }
+            continue;
+          }
+        }
+
+        // Update group visit time
+        this.db.updateGroupVisit(group.id);
+
+        // Delay between groups
+        const groupDelay = this.randomDelay(this.settings.groupRotationDelay || 10, (this.settings.groupRotationDelay || 10) + 20);
+        this.logger.info(`Waiting ${groupDelay}s before next group...`);
+        await this.sleep(groupDelay * 1000);
+
+      } catch (error) {
+        this.logger.error(`Error processing group ${group.url}:`, error.message);
+        if (error.message.includes('checkpoint') || error.message.includes('restricted')) {
+          this.db.markAccountCheckpoint(this.account.id);
+          throw error;
+        }
+        continue;
+      }
+    }
+
+    // Final home scroll
+    try {
+      await this.fbAutomator.scrollHomeFeed();
+    } catch (e) { }
+
+    // Auto-disable account
+    try {
+      this.db.toggleAccount(this.account.id, false);
+      this.sendToRenderer('log', {
+        level: 'warning',
+        message: `Account ${this.account.name} auto-disabled after completing groups.`,
+        timestamp: Date.now()
+      });
+      this.sendToRenderer('accounts-updated', {
+        reason: 'account-disabled',
+        accountId: this.account.id,
+        accountName: this.account.name
+      });
+    } catch (err) {
+      this.logger.error(`Failed to auto-disable account: ${err.message}`);
+    }
   }
 
   async processPost(post) {

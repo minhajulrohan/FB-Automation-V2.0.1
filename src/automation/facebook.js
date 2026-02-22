@@ -876,6 +876,145 @@ class FacebookAutomator {
     this.commentsSinceHomeScroll++;
     this.commentsSinceReelsBreak++;
   }
+
+  // =====================================================
+  // GROUP AUTOMATION METHODS
+  // Navigate to Facebook group, smooth scroll, find recent posts, comment
+  // =====================================================
+
+  async navigateToGroup(groupUrl) {
+    this.logger.info(`Navigating to group: ${groupUrl}`);
+
+    await this.page.goto(groupUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 45000
+    });
+
+    await this.randomDelay(3000, 5000);
+    await this.checkForRestrictions();
+    this.logger.info('Group page loaded');
+  }
+
+  async smoothScrollGroup(scrollCount = 5) {
+    this.logger.info(`Smooth scrolling group feed (${scrollCount} scrolls)...`);
+
+    for (let i = 0; i < scrollCount; i++) {
+      const scrollAmount = Math.floor(Math.random() * 300) + 400; // 400-700px per scroll
+
+      await this.page.evaluate((amount) => {
+        window.scrollBy({
+          top: amount,
+          behavior: 'smooth'
+        });
+      }, scrollAmount);
+
+      await this.randomDelay(1200, 2500);
+    }
+
+    this.logger.info('Group scroll complete');
+  }
+
+  async findRecentGroupPosts(maxAgeMinutes = 60) {
+    this.logger.info(`Looking for recent posts (within ${maxAgeMinutes} minutes)...`);
+
+    try {
+      const recentPostUrls = await this.page.evaluate((maxAge) => {
+        const found = [];
+        const now = Date.now();
+
+        // Look for post links - Facebook group posts
+        const allLinks = Array.from(document.querySelectorAll('a[href]'));
+
+        for (const link of allLinks) {
+          const href = link.href;
+
+          // Match group post URLs
+          if (!href.includes('/groups/') || !href.includes('/posts/')) continue;
+          if (found.includes(href)) continue;
+
+          // Check if there's a nearby time element indicating recency
+          const nearbyElements = link.closest('[role="article"]') ||
+            link.closest('[data-pagelet]') ||
+            link.parentElement;
+
+          if (!nearbyElements) continue;
+
+          // Look for time elements
+          const timeElements = nearbyElements.querySelectorAll('abbr[data-utime], abbr[title], time, span[id*="jsc"]');
+          let isRecent = false;
+
+          for (const timeEl of timeElements) {
+            const utime = timeEl.getAttribute('data-utime');
+            if (utime) {
+              const postTime = parseInt(utime) * 1000;
+              const ageMinutes = (now - postTime) / 60000;
+              if (ageMinutes <= maxAge) {
+                isRecent = true;
+                break;
+              }
+            }
+
+            // Check text content for time indicators
+            const text = timeEl.textContent || timeEl.getAttribute('title') || '';
+            if (text.match(/\d+\s*(min|minute|hr|hour|m|h)\s*(ago)?/i)) {
+              // Check if it says something like "1h" or "45m" or "30 minutes ago"
+              const match = text.match(/(\d+)\s*(min|minute|m|hr|hour|h)/i);
+              if (match) {
+                const value = parseInt(match[1]);
+                const unit = match[2].toLowerCase();
+                let ageInMinutes = value;
+                if (unit.startsWith('h')) ageInMinutes = value * 60;
+                if (ageInMinutes <= maxAge) {
+                  isRecent = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          // If we can't determine time, include the first few posts anyway
+          if (isRecent || found.length < 3) {
+            found.push(href);
+          }
+
+          if (found.length >= 10) break;
+        }
+
+        return [...new Set(found)];
+      }, maxAgeMinutes);
+
+      this.logger.info(`Found ${recentPostUrls.length} recent posts in group`);
+      return recentPostUrls;
+
+    } catch (error) {
+      this.logger.error('Failed to find recent posts:', error.message);
+      return [];
+    }
+  }
+
+  async processGroupPost(postUrl, commentText) {
+    this.logger.info(`Commenting on group post: ${postUrl}`);
+
+    // Navigate to the post
+    await this.page.goto(postUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+
+    await this.randomDelay(2000, 4000);
+    await this.checkForRestrictions();
+
+    // Scroll a bit to load comments
+    await this.page.evaluate(() => {
+      window.scrollBy({ top: 300, behavior: 'smooth' });
+    });
+
+    await this.randomDelay(1000, 2000);
+
+    // Now comment just like post commenting
+    const result = await this.addComment(commentText);
+    return result;
+  }
 }
 
 module.exports = FacebookAutomator;

@@ -41,6 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initAutomationControls();
   initAccountManagement();
   initPostManagement();
+  initGroupManagement();
   initTemplateManagement();
   initSettings();
   initActivity();
@@ -84,6 +85,15 @@ async function populateAccountDropdowns() {
     }
   }
 
+  // Populate Group dropdowns
+  ['groupAccountId', 'importGroupAccountId'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Select Account --</option>' +
+        accountsList.map(acc => `<option value="${acc.id}">${acc.name}</option>`).join('');
+    }
+  });
+
   return accountsList;
 }
 
@@ -118,6 +128,7 @@ function switchPage(page) {
   // Reload data for specific pages
   if (page === 'accounts') loadAccounts();
   if (page === 'posts') loadPosts();
+  if (page === 'groups') loadGroups();
   if (page === 'activity') loadActivity();
   if (page === 'templates') loadTemplateAccounts();
 }
@@ -1166,6 +1177,187 @@ function clearPostForm() {
   document.getElementById('postTitle').value = '';
 }
 
+// =====================================================
+// Facebook Group Management
+// =====================================================
+
+function initGroupManagement() {
+  const addGroupBtn = document.getElementById('addGroupBtn');
+  const importGroupsBtn = document.getElementById('importGroupsBtn');
+  const saveGroupBtn = document.getElementById('saveGroupBtn');
+  const importGroupsConfirmBtn = document.getElementById('importGroupsConfirmBtn');
+  const deleteSelectedGroupsBtn = document.getElementById('deleteSelectedGroupsBtn');
+  const selectAllGroups = document.getElementById('selectAllGroups');
+
+  // Open add group modal
+  addGroupBtn.addEventListener('click', async () => {
+    await populateGroupAccountDropdowns();
+    document.querySelector('#groupModal .modal-header h2').textContent = 'Add Facebook Group';
+    document.getElementById('groupUrl').value = '';
+    document.getElementById('groupName').value = '';
+    document.getElementById('groupModal').style.display = 'flex';
+  });
+
+  // Open import groups modal
+  importGroupsBtn.addEventListener('click', async () => {
+    await populateGroupAccountDropdowns();
+    document.getElementById('groupUrlsList').value = '';
+    document.getElementById('importGroupsModal').style.display = 'flex';
+  });
+
+  // Save group
+  saveGroupBtn.addEventListener('click', async () => {
+    const accountId = document.getElementById('groupAccountId').value;
+    const url = document.getElementById('groupUrl').value.trim();
+    const name = document.getElementById('groupName').value.trim();
+
+    if (!accountId) { alert('Please select an account'); return; }
+    if (!url) { alert('Please enter a group URL'); return; }
+    if (!url.includes('facebook.com/groups/')) { alert('Please enter a valid Facebook group URL'); return; }
+
+    try {
+      await ipcRenderer.invoke('add-group', { accountId, url, name });
+      document.getElementById('groupModal').style.display = 'none';
+      loadGroups();
+      addLog('success', `Group added: ${name || url}`);
+    } catch (e) {
+      alert('❌ Error: ' + e.message + '\n\nPlease fully close the app and reopen it.');
+    }
+  });
+
+  // Import groups confirm
+  importGroupsConfirmBtn.addEventListener('click', async () => {
+    const accountId = document.getElementById('importGroupAccountId').value;
+    const urlsText = document.getElementById('groupUrlsList').value;
+
+    if (!accountId) { alert('Please select an account'); return; }
+    if (!urlsText.trim()) { alert('Please enter at least one group URL'); return; }
+
+    const urls = urlsText.split('\n').map(u => u.trim()).filter(u => u && u.includes('facebook.com/groups/'));
+    if (urls.length === 0) { alert('No valid Facebook group URLs found'); return; }
+
+    const result = await ipcRenderer.invoke('import-groups', { urls, accountId });
+    document.getElementById('importGroupsModal').style.display = 'none';
+    loadGroups();
+    addLog('success', `Imported ${result.length} group(s)`);
+  });
+
+  // Select all groups checkbox
+  selectAllGroups.addEventListener('change', () => {
+    const checkboxes = document.querySelectorAll('.group-checkbox');
+    checkboxes.forEach(cb => cb.checked = selectAllGroups.checked);
+    updateDeleteGroupsBtn();
+  });
+
+  // Delete selected
+  deleteSelectedGroupsBtn.addEventListener('click', async () => {
+    const selected = Array.from(document.querySelectorAll('.group-checkbox:checked'))
+      .map(cb => cb.dataset.id);
+    if (selected.length === 0) return;
+    if (!confirm(`Delete ${selected.length} group(s)?`)) return;
+
+    for (const id of selected) {
+      await ipcRenderer.invoke('delete-group', id);
+    }
+    loadGroups();
+    addLog('info', `Deleted ${selected.length} group(s)`);
+  });
+
+  // Close modals
+  document.querySelectorAll('#groupModal .close, #importGroupsModal .close').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.getElementById('groupModal').style.display = 'none';
+      document.getElementById('importGroupsModal').style.display = 'none';
+    });
+  });
+}
+
+function updateDeleteGroupsBtn() {
+  const selected = document.querySelectorAll('.group-checkbox:checked').length;
+  const btn = document.getElementById('deleteSelectedGroupsBtn');
+  const count = document.getElementById('selectedGroupCount');
+  if (selected > 0) {
+    btn.style.display = 'inline-flex';
+    count.textContent = selected;
+  } else {
+    btn.style.display = 'none';
+  }
+}
+
+async function populateGroupAccountDropdowns() {
+  const accountsList = await ipcRenderer.invoke('get-accounts');
+
+  ['groupAccountId', 'importGroupAccountId'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (sel) {
+      sel.innerHTML = '<option value="">-- Select Account --</option>' +
+        accountsList.map(acc => `<option value="${acc.id}">${acc.name}</option>`).join('');
+    }
+  });
+}
+
+async function loadGroups() {
+  let groups = [];
+  try {
+    groups = await ipcRenderer.invoke('get-groups');
+  } catch (e) {
+    console.error('get-groups error:', e.message);
+    document.getElementById('groupsTableBody').innerHTML =
+      '<tr><td colspan="7" class="text-center" style="color:red;">⚠️ Handler not found. Please restart the app completely (close & reopen).</td></tr>';
+    return;
+  }
+  const accounts = await ipcRenderer.invoke('get-accounts');
+  const tbody = document.getElementById('groupsTableBody');
+
+  if (groups.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center">No groups added yet</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = groups.map(group => {
+    const account = accounts.find(a => a.id === group.accountId);
+    const accountName = account ? account.name : 'Unknown';
+    const lastVisited = group.lastVisited
+      ? new Date(group.lastVisited * 1000).toLocaleString()
+      : 'Never';
+    const groupUrl = group.url.length > 50 ? group.url.substring(0, 50) + '...' : group.url;
+    const enabledClass = group.enabled ? 'badge-success' : 'badge-warning';
+    const enabledText = group.enabled ? 'Active' : 'Disabled';
+
+    return `<tr>
+      <td><input type="checkbox" class="group-checkbox" data-id="${group.id}" onchange="updateDeleteGroupsBtn()"></td>
+      <td>${accountName}</td>
+      <td><a href="${group.url}" target="_blank" style="color:var(--primary);word-break:break-all;">${groupUrl}</a></td>
+      <td>${group.name || '<span style="color:var(--text-secondary)">—</span>'}</td>
+      <td>${group.totalComments || 0}</td>
+      <td>${lastVisited}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm ${group.enabled ? 'btn-warning' : 'btn-success'}"
+            onclick="toggleGroup('${group.id}', ${!group.enabled})">
+            ${group.enabled ? '⏸️ Disable' : '▶️ Enable'}
+          </button>
+          <button class="btn btn-sm btn-danger" onclick="deleteGroup('${group.id}')">
+            🗑️ Delete
+          </button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function toggleGroup(id, enabled) {
+  await ipcRenderer.invoke('toggle-group', id, enabled);
+  loadGroups();
+}
+
+async function deleteGroup(id) {
+  if (!confirm('Delete this group?')) return;
+  await ipcRenderer.invoke('delete-group', id);
+  loadGroups();
+  addLog('info', 'Group deleted');
+}
+
 // Templates Management
 function initTemplateManagement() {
   const accountSelect = document.getElementById('templateAccount');
@@ -1347,7 +1539,8 @@ function initSettings() {
       commentDelayMax: parseInt(document.getElementById('commentDelayMax').value),
       maxCommentsPerAccount: parseInt(document.getElementById('maxCommentsPerAccount').value),
       accountSwitchDelay: parseInt(document.getElementById('accountSwitchDelay').value),
-      postRotationDelay: parseInt(document.getElementById('postRotationDelay').value),
+      groupDelayMin: parseInt(document.getElementById('groupDelayMin').value),
+      groupDelayMax: parseInt(document.getElementById('groupDelayMax').value),
       autoDeletePending: document.getElementById('autoDeletePending').checked,
       autoReact: document.getElementById('autoReact').checked,
       reactionTypes: Array.from(document.querySelectorAll('input[name="reactionType"]:checked'))
@@ -1358,7 +1551,8 @@ function initSettings() {
       headless: document.getElementById('headless').checked,
       workingHoursStart: parseInt(document.getElementById('workingHoursStart').value),
       workingHoursEnd: parseInt(document.getElementById('workingHoursEnd').value),
-      respectWorkingHours: document.getElementById('respectWorkingHours').checked
+      respectWorkingHours: document.getElementById('respectWorkingHours').checked,
+      automationMode: document.querySelector('input[name="automationMode"]:checked')?.value || 'posts'
     };
 
     await ipcRenderer.invoke('save-settings', newSettings);
@@ -1375,7 +1569,8 @@ async function loadSettings() {
   document.getElementById('commentDelayMax').value = settings.commentDelayMax;
   document.getElementById('maxCommentsPerAccount').value = settings.maxCommentsPerAccount;
   document.getElementById('accountSwitchDelay').value = settings.accountSwitchDelay;
-  document.getElementById('postRotationDelay').value = settings.postRotationDelay;
+  document.getElementById('groupDelayMin').value = settings.groupDelayMin || 30;
+  document.getElementById('groupDelayMax').value = settings.groupDelayMax || 120;
   document.getElementById('autoDeletePending').checked = settings.autoDeletePending;
   document.getElementById('autoReact').checked = settings.autoReact;
   document.getElementById('reactionProbability').value = settings.reactionProbability;
@@ -1386,10 +1581,28 @@ async function loadSettings() {
   document.getElementById('workingHoursEnd').value = settings.workingHoursEnd;
   document.getElementById('respectWorkingHours').checked = settings.respectWorkingHours;
 
+  // Automation mode
+  const modeVal = settings.automationMode || 'posts';
+  const modeRadio = document.querySelector(`input[name="automationMode"][value="${modeVal}"]`);
+  if (modeRadio) modeRadio.checked = true;
+  updateModeLabels(modeVal);
+
+  // Add mode radio change listeners
+  document.querySelectorAll('input[name="automationMode"]').forEach(radio => {
+    radio.addEventListener('change', () => updateModeLabels(radio.value));
+  });
+
   // Reaction types
   document.querySelectorAll('input[name="reactionType"]').forEach(cb => {
     cb.checked = settings.reactionTypes.includes(cb.value);
   });
+}
+
+function updateModeLabels(mode) {
+  const postsLabel = document.getElementById('modePostsLabel');
+  const groupsLabel = document.getElementById('modeGroupsLabel');
+  if (postsLabel) postsLabel.style.borderColor = mode === 'posts' ? 'var(--primary)' : 'var(--border)';
+  if (groupsLabel) groupsLabel.style.borderColor = mode === 'groups' ? '#27ae60' : 'var(--border)';
 }
 
 // Activity
@@ -1451,15 +1664,21 @@ async function loadStats() {
 }
 
 function updateStats(stats) {
-  document.getElementById('totalComments').textContent = stats.totalComments;
-  document.getElementById('totalReacts').textContent = stats.totalReacts;
-  document.getElementById('totalAccounts').textContent = stats.totalAccounts;
-  document.getElementById('activeAccounts').textContent = stats.activeAccounts;
-  document.getElementById('disabledAccounts').textContent = stats.disabledAccounts;
-  document.getElementById('bannedAccounts').textContent = stats.bannedAccounts;
-  document.getElementById('totalPosts').textContent = stats.totalPosts;
-  document.getElementById('pendingComments').textContent = stats.pendingComments;
-  document.getElementById('declinedComments').textContent = stats.declinedComments;
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set('totalComments', stats.totalComments);
+  set('totalReacts', stats.totalReacts);
+  set('totalAccounts', stats.totalAccounts);
+  set('activeAccounts', stats.activeAccounts);
+  set('disabledAccounts', stats.disabledAccounts);
+  set('bannedAccounts', stats.bannedAccounts);
+  set('totalPosts', stats.totalPosts);
+  set('pendingComments', stats.pendingComments);
+  set('declinedComments', stats.declinedComments);
+  set('totalGroups', stats.totalGroups || 0);
+  set('activeGroups', stats.activeGroups || 0);
 }
 
 // Logs

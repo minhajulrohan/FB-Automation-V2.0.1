@@ -191,8 +191,8 @@ app.whenReady().then(async () => {
     }
   }, 60 * 60 * 1000); // Every hour
 
-  createWindow();
   setupIPCHandlers();
+  createWindow();
   setupDailyReset();
 });
 
@@ -235,8 +235,8 @@ ipcMain.handle('activate-license', async (event, licenseKey) => {
       automationEngine = new AutomationEngine(db, logger, sendToRenderer);
 
       // Create main window
-      createWindow();
       setupIPCHandlers();
+      createWindow();
       setupDailyReset();
     }
 
@@ -357,6 +357,35 @@ function setupIPCHandlers() {
   // Logs
   ipcMain.handle('get-logs', async () => {
     return db.getLogs(100);
+  });
+
+  ipcMain.handle('clear-logs', async () => {
+    return db.clearLogs();
+  });
+
+  // ==========================================
+  // FACEBOOK GROUP MANAGEMENT
+  // ==========================================
+  ipcMain.handle('add-group', async (event, group) => {
+    return db.addGroup(group);
+  });
+
+  ipcMain.handle('get-groups', async () => {
+    return db.getGroups();
+  });
+
+  ipcMain.handle('delete-group', async (event, id) => {
+    return db.deleteGroup(id);
+  });
+
+  ipcMain.handle('toggle-group', async (event, id, enabled) => {
+    return db.toggleGroup(id, enabled);
+  });
+
+  ipcMain.handle('import-groups', async (event, params) => {
+    const { urls, accountId } = params;
+    if (!accountId || !urls || urls.length === 0) return [];
+    return db.importGroups(urls, accountId);
   });
 
   // ==========================================

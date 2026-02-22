@@ -112,6 +112,21 @@ class DatabaseManager {
       )
     `);
 
+    // Facebook Groups table
+    this.db.exec(`
+      CREATE TABLE IF NOT EXISTS fb_groups (
+        id TEXT PRIMARY KEY,
+        url TEXT NOT NULL,
+        name TEXT,
+        accountId TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+        totalComments INTEGER DEFAULT 0,
+        lastVisited INTEGER,
+        createdAt INTEGER DEFAULT (strftime('%s', 'now')),
+        FOREIGN KEY (accountId) REFERENCES accounts(id) ON DELETE CASCADE
+      )
+    `);
+
     // Initialize default settings
     this.initDefaultSettings();
   }
@@ -123,6 +138,8 @@ class DatabaseManager {
       maxCommentsPerAccount: 20,
       accountSwitchDelay: 60,
       groupRotationDelay: 10,
+      groupDelayMin: 30,
+      groupDelayMax: 120,
       autoDeletePending: true,
       autoReact: true,
       reactionTypes: ['LIKE', 'LOVE', 'HAHA', 'WOW'],
@@ -132,7 +149,8 @@ class DatabaseManager {
       headless: false,
       workingHoursStart: 9,
       workingHoursEnd: 21,
-      respectWorkingHours: false
+      respectWorkingHours: false,
+      automationMode: 'posts'
     };
 
     const stmt = this.db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
@@ -561,17 +579,93 @@ class DatabaseManager {
       WHERE action = 'comment' AND status = 'declined'
     `).get();
 
+    // Group stats
+    let groups = [];
+    let totalGroupComments = 0;
+    let activeGroups = 0;
+    try {
+      groups = this.db.prepare('SELECT * FROM fb_groups').all();
+      const gc = this.db.prepare('SELECT SUM(totalComments) as total FROM fb_groups').get();
+      totalGroupComments = gc.total || 0;
+      activeGroups = groups.filter(g => g.enabled).length;
+    } catch (e) { }
+
+    // totalComments = post mode comments + group mode comments (merged)
+    const combinedComments = (totalComments.total || 0) + totalGroupComments;
+
     return {
       totalAccounts: accounts.length,
       activeAccounts: accounts.filter(a => a.enabled && a.status === 'active').length,
       disabledAccounts: accounts.filter(a => !a.enabled).length,
       bannedAccounts: accounts.filter(a => a.checkpointDetected).length,
       totalPosts: posts.length,
-      totalComments: totalComments.total || 0,
+      totalComments: combinedComments,
       totalReacts: totalReacts.total || 0,
       pendingComments: pendingComments.count || 0,
-      declinedComments: declinedComments.count || 0
+      declinedComments: declinedComments.count || 0,
+      totalGroups: groups.length,
+      activeGroups,
+      totalGroupComments,
     };
+  }
+  // =====================================================
+  // Facebook Group Management
+  // =====================================================
+
+  addGroup(group) {
+    const id = uuidv4();
+    const stmt = this.db.prepare(`
+      INSERT INTO fb_groups (id, url, name, accountId)
+      VALUES (?, ?, ?, ?)
+    `);
+    stmt.run(id, group.url, group.name || null, group.accountId);
+    return { id, ...group };
+  }
+
+  getGroups() {
+    const stmt = this.db.prepare('SELECT * FROM fb_groups ORDER BY createdAt DESC');
+    return stmt.all();
+  }
+
+  getGroupsByAccount(accountId) {
+    const stmt = this.db.prepare('SELECT * FROM fb_groups WHERE accountId = ? ORDER BY createdAt DESC');
+    return stmt.all(accountId);
+  }
+
+  deleteGroup(id) {
+    const stmt = this.db.prepare('DELETE FROM fb_groups WHERE id = ?');
+    stmt.run(id);
+  }
+
+  toggleGroup(id, enabled) {
+    const stmt = this.db.prepare('UPDATE fb_groups SET enabled = ? WHERE id = ?');
+    stmt.run(enabled ? 1 : 0, id);
+  }
+
+  updateGroupVisit(id) {
+    const stmt = this.db.prepare('UPDATE fb_groups SET lastVisited = strftime(\'%s\', \'now\') WHERE id = ?');
+    stmt.run(id);
+  }
+
+  incrementGroupComments(id) {
+    const stmt = this.db.prepare('UPDATE fb_groups SET totalComments = totalComments + 1 WHERE id = ?');
+    stmt.run(id);
+  }
+
+  importGroups(groupUrls, accountId) {
+    const results = [];
+    const stmt = this.db.prepare(`
+      INSERT INTO fb_groups (id, url, accountId, enabled)
+      VALUES (?, ?, ?, 1)
+    `);
+    for (const url of groupUrls) {
+      if (url && url.trim()) {
+        const id = uuidv4();
+        stmt.run(id, url.trim(), accountId);
+        results.push({ id, url: url.trim(), accountId });
+      }
+    }
+    return results;
   }
 }
 
