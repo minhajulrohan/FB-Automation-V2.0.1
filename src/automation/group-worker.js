@@ -122,7 +122,6 @@ class GroupAutomationWorker {
     for (let gi = 0; gi < this.groups.length; gi++) {
       const group = this.groups[gi];
 
-      // Daily limit check
       const acc = this.db.getAccounts().find(a => a.id === this.account.id);
       if (!acc || acc.commentsToday >= this.settings.maxCommentsPerAccount) {
         this.logger.info(`[GROUP] Daily limit reached for ${this.account.name}`);
@@ -133,19 +132,19 @@ class GroupAutomationWorker {
       this.logger.info(`[GROUP] === Navigating to: ${group.url}`);
 
       try {
-        // Navigate - networkidle দিয়ে wait করো
         await this.page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-        await this.sleep(5000);
 
-        // Page info log
+        // ── FIX: বেশি wait করো যাতে Facebook feed fully render হয় ──
+        // আগে 5s ছিল — Facebook group feed render হতে 8-10s লাগে
+        await this.sleep(10000);
+
         const title = await this.page.title();
-        const url = this.page.url();
-        this.logger.info(`[GROUP] Page loaded: "${title}" | URL: ${url}`);
+        this.logger.info(`[GROUP] Page: "${title}" | URL: ${this.page.url()}`);
 
-        // Feed load হওয়ার জন্য scroll করো এবং ফিরে আসো
-        await this.scrollAndReturn();
+        // Scroll করে আরো posts load করো
+        await this.scrollToLoadFeed();
 
-        // Post URLs খুঁজো
+        // Post URLs বের করো
         const postUrls = await this.getPostUrlsFromPage();
         this.logger.info(`[GROUP] Found ${postUrls.length} post URLs`);
 
@@ -155,7 +154,6 @@ class GroupAutomationWorker {
           continue;
         }
 
-        // Max 3 posts এ comment করো
         const targets = postUrls.slice(0, commentsPerGroup);
         this.log('info', `💬 Will comment on ${targets.length} post(s)`);
 
@@ -184,7 +182,6 @@ class GroupAutomationWorker {
         this.db.updateGroupVisit(group.id);
         this.log('success', `✅ Group done: ${done} comment(s) posted`);
 
-        // Next group delay - random between min and max
         if (gi < this.groups.length - 1) {
           const min = (this.settings.groupDelayMin || 30);
           const max = (this.settings.groupDelayMax || 120);
@@ -198,220 +195,200 @@ class GroupAutomationWorker {
       }
     }
 
-    // Auto-disable account
     try {
       this.db.toggleAccount(this.account.id, false);
       this.log('warning', `Account ${this.account.name} auto-disabled after completing all groups.`);
     } catch (e) { }
   }
 
-  // Feed scroll করে content load করো তারপর top এ ফিরে আসো
-  async scrollAndReturn() {
-    this.logger.info('[GROUP] Scrolling to load feed...');
-    for (let i = 0; i < 6; i++) {
-      await this.page.evaluate(() => window.scrollBy(0, 500));
-      await this.sleep(800 + Math.random() * 600);
+  // Scroll করে feed posts load করো
+  async scrollToLoadFeed() {
+    this.logger.info('[GROUP] Scrolling to load more posts...');
+    for (let i = 0; i < 10; i++) {
+      await this.page.evaluate(() => window.scrollBy(0, 700));
+      await this.sleep(900 + Math.random() * 600);
     }
-    await this.sleep(1500);
-    // উপরে ফিরে আসো
-    await this.page.evaluate(() => window.scrollTo(0, 0));
     await this.sleep(2000);
-    this.logger.info('[GROUP] Back to top');
+    await this.page.evaluate(() => window.scrollTo(0, 0));
+    await this.sleep(1500);
+    this.logger.info('[GROUP] Scroll done, back to top');
   }
 
-  // Page থেকে post URL গুলো বের করো - multiple strategy
   async getPostUrlsFromPage() {
-    const result = await this.page.evaluate(() => {
+    // Random minute limit — 1 to 59
+    const maxAgeMinutes = Math.floor(Math.random() * 59) + 1;
+    this.logger.info(`[GROUP] Time filter: ≤${maxAgeMinutes}m`);
+
+    // ── FIX: current page এর group ID বের করো ──
+    // শুধু এই group এর posts নেওয়া হবে, অন্য group এর না
+    const currentGroupId = await this.page.evaluate(() => {
+      const url = window.location.href;
+      // /groups/123456789/ বা /groups/GroupName/ — দুটোই handle করো
+      const m = url.match(/facebook\.com\/groups\/([^/?#]+)/);
+      return m ? m[1] : null;
+    });
+    this.logger.info(`[GROUP] Current group ID: ${currentGroupId}`);
+
+    const result = await this.page.evaluate((params) => {
+      const { maxMins, groupId } = params;
       const logs = [];
 
-      // URL clean করো
-      function clean(href) {
-        return href.split('?')[0].split('#')[0].replace(/\/$/, '');
+      function bnToAr(s) {
+        const m = { '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9' };
+        return (s || '').replace(/[০-৯]/g, c => m[c] || c);
       }
 
-      // Valid post URL check
-      function isPostUrl(href) {
-        if (!href || !href.includes('facebook.com')) return false;
-        if (href.includes('comment_id=')) return false;
-        if (href.includes('notif_id=')) return false;
-        if (href.includes('ref=notif')) return false;
-        if (href.includes('__cft__')) return false;
-        if (href.includes('/photos/')) return false;
-        if (href.includes('/videos/')) return false;
-        if (href.includes('/comment/')) return false;
-        if (href.includes('/events/')) return false;
-        if (href.includes('/members/')) return false;
-        if (href.includes('#')) return false;
-        return href.includes('/posts/') ||
-          href.includes('story_fbid') ||
-          href.includes('pfbid');
-      }
-
-      // Time text → minutes
-      function toMins(t) {
-        t = (t || '').trim().toLowerCase();
-        if (!t) return null;
-        if (t === 'just now' || t === 'now') return 0;
-        let m;
-        m = t.match(/^(\d+)\s*s(ec)?/); if (m) return 0;
-        m = t.match(/^(\d+)\s*m(in)?/); if (m) return +m[1];
-        m = t.match(/^(\d+)\s*h(r|our)?/); if (m) return +m[1] * 60;
+      function toMin(raw) {
+        if (!raw) return null;
+        const s = bnToAr(raw).trim().toLowerCase();
+        if (/এখন|এখনই|এইমাত্র/.test(raw)) return 0;
+        if (/সেকেন্ড/.test(raw)) return 0;
+        const bm = bnToAr(raw).match(/(\d+)\s*(মি\.|মিনিট)/);
+        if (bm) return +bm[1];
+        const bh = bnToAr(raw).match(/(\d+)\s*(ঘণ্টা|ঘন্টা)/);
+        if (bh) return +bh[1] * 60;
+        if (/^just\s*now$/.test(s)) return 0;
+        if (/\d+\s*s(ec)?(\s+ago)?$/.test(s)) return 0;
+        if (/(\d+)\s*second/.test(s)) return 0;
+        const mm = s.match(/^(\d+)\s*m(in(ute)?s?)?(\s+ago)?$/);
+        if (mm) return +mm[1];
+        const ml = s.match(/(\d+)\s*minute/);
+        if (ml) return +ml[1];
+        const hm = s.match(/^(\d+)\s*h(r|our)?s?(\s+ago)?$/);
+        if (hm) return +hm[1] * 60;
+        const hl = s.match(/(\d+)\s*hour/);
+        if (hl) return +hl[1] * 60;
         return null;
       }
 
-      // Strategy 1: role="feed" এর ভেতরে role="article" খোঁজো
-      const feedEl = document.querySelector('[role="feed"]');
-      const articles = feedEl
-        ? Array.from(feedEl.querySelectorAll('[role="article"]'))
-        : Array.from(document.querySelectorAll('[role="article"]'));
+      function isPostHref(href) {
+        if (!href || !href.includes('facebook.com')) return false;
+        if (href.includes('/photos/') || href.includes('/videos/')) return false;
+        if (href.includes('/events/') || href.includes('/about')) return false;
+        if (href.includes('/members/') || href.includes('/user/')) return false;
+        if (href.includes('/files/') || href.includes('/announcements')) return false;
+        if (href.includes('/media/') || href.includes('/search')) return false;
+        if (href.includes('/permalink/likes')) return false;
+        return href.includes('/posts/') || href.includes('story_fbid') || href.includes('pfbid');
+      }
 
-      logs.push(`Strategy1: ${articles.length} articles found`);
+      function cleanUrl(href) {
+        return href.split('?')[0].split('#')[0].replace(/\/$/, '');
+      }
 
+      // সব post links collect করো
+      const allLinks = Array.from(document.querySelectorAll('a[href]'))
+        .filter(a => isPostHref(a.href));
+
+      logs.push(`Post-pattern links found: ${allLinks.length}`);
+
+      // ── FIX: শুধু current group এর posts রাখো ──
+      // groupId দিয়ে filter করো যাতে sidebar/notification এর অন্য group এর links না ঢোকে
+      const groupLinks = groupId
+        ? allLinks.filter(a => a.href.includes(`/groups/${groupId}/`))
+        : allLinks;
+
+      logs.push(`Current group (${groupId}) links: ${groupLinks.length}`);
+
+      // Unique base URLs — শুধু current group এর
       const seen = new Set();
-      const posts = [];
-
-      for (const article of articles) {
-        // Article এর সব links
-        const links = Array.from(article.querySelectorAll('a[href]'))
-          .filter(a => isPostUrl(a.href));
-
-        if (links.length === 0) continue;
-
-        const url = clean(links[0].href);
-        if (seen.has(url)) continue;
-        seen.add(url);
-
-        // Time খোঁজো - article এর সব text node স্ক্যান করো
-        let age = null;
-        const allText = Array.from(article.querySelectorAll('*'))
-          .filter(el => el.childElementCount === 0)
-          .map(el => (el.innerText || el.textContent || '').trim())
-          .filter(t => t.length > 0 && t.length <= 12);
-
-        for (const t of allText) {
-          const m = toMins(t);
-          if (m !== null) { age = m; break; }
-        }
-
-        // aria-label এ time খোঁজো (যেমন: "29 minutes ago")
-        if (age === null) {
-          const timeEls = article.querySelectorAll('[aria-label]');
-          for (const el of timeEls) {
-            const label = el.getAttribute('aria-label') || '';
-            const m = toMins(label);
-            if (m !== null) { age = m; break; }
-            // "X minutes ago" pattern
-            const match = label.match(/(\d+)\s*(minute|hour|second)/i);
-            if (match) {
-              const val = +match[1];
-              const unit = match[2].toLowerCase();
-              if (unit.startsWith('s')) age = 0;
-              else if (unit.startsWith('m')) age = val;
-              else if (unit.startsWith('h')) age = val * 60;
-              break;
-            }
-          }
-        }
-
-        posts.push({ url, age });
-      }
-
-      logs.push(`Strategy1 result: ${posts.length} posts`);
-
-      // Strategy 2: article না পেলে সরাসরি link scan
-      if (posts.length === 0) {
-        logs.push('Falling back to Strategy2: direct link scan');
-        const allLinks = Array.from(document.querySelectorAll('a[href]'))
-          .filter(a => isPostUrl(a.href));
-
-        for (const link of allLinks) {
-          const url = clean(link.href);
-          if (seen.has(url)) continue;
+      const uniqueLinks = [];
+      for (const a of groupLinks) {
+        const url = cleanUrl(a.href);
+        if (!seen.has(url)) {
           seen.add(url);
-
-          // Parent traverse করে time খোঁজো
-          let age = null;
-          let node = link.parentElement;
-          for (let i = 0; i < 20 && node && node !== document.body; i++) {
-            const texts = Array.from(node.querySelectorAll('*'))
-              .filter(el => el.childElementCount === 0)
-              .map(el => (el.innerText || el.textContent || '').trim())
-              .filter(t => t.length > 0 && t.length <= 12);
-            for (const t of texts) {
-              const m = toMins(t);
-              if (m !== null) { age = m; break; }
-            }
-            // aria-label check
-            if (age === null) {
-              const label = node.getAttribute('aria-label') || '';
-              const match = label.match(/(\d+)\s*(minute|hour|second)/i);
-              if (match) {
-                const val = +match[1];
-                const unit = match[2].toLowerCase();
-                if (unit.startsWith('s')) age = 0;
-                else if (unit.startsWith('m')) age = val;
-                else if (unit.startsWith('h')) age = val * 60;
-              }
-            }
-            if (age !== null) break;
-            node = node.parentElement;
-          }
-          posts.push({ url, age });
+          uniqueLinks.push({ url, el: a });
+          logs.push(`  Found: ${url}`);
         }
-        logs.push(`Strategy2 result: ${posts.length} posts`);
+      }
+      logs.push(`Unique post URLs: ${uniqueLinks.length}`);
+
+      // প্রতিটা link এর কাছে time খোঁজো
+      const posts = [];
+      for (const { url, el } of uniqueLinks) {
+        let ageMinutes = null;
+        let node = el.parentElement;
+
+        for (let level = 0; level < 20 && node && node !== document.body; level++) {
+          // data-utime — সবচেয়ে reliable
+          const ut = node.querySelector('[data-utime]');
+          if (ut) {
+            const utime = parseInt(ut.getAttribute('data-utime'));
+            if (utime) { ageMinutes = Math.floor((Date.now() / 1000 - utime) / 60); break; }
+          }
+
+          // aria-label time
+          const ariaEls = node.querySelectorAll('[aria-label]');
+          for (const ar of ariaEls) {
+            const lbl = ar.getAttribute('aria-label') || '';
+            if (/minute|hour|second|ago|just now|মি\.|ঘণ্টা|এখন/i.test(lbl)) {
+              const mins = toMin(lbl);
+              if (mins !== null) { ageMinutes = mins; break; }
+            }
+          }
+          if (ageMinutes !== null) break;
+
+          // innerText candidates
+          const candidates = Array.from(node.querySelectorAll('a, span, abbr')).concat([node]);
+          for (const c of candidates) {
+            if (c.childElementCount > 3) continue;
+            const txt = (c.innerText || c.textContent || '').trim();
+            if (!txt || txt.length > 25) continue;
+            const mins = toMin(txt);
+            if (mins !== null) { ageMinutes = mins; break; }
+          }
+          if (ageMinutes !== null) break;
+
+          node = node.parentElement;
+        }
+
+        logs.push(`  age=${ageMinutes === null ? '?' : ageMinutes + 'm'} | ${url}`);
+        posts.push({ url, ageMinutes });
       }
 
-      return { posts, logs };
-    });
+      // Recent filter
+      const recent = posts.filter(p => p.ageMinutes !== null && p.ageMinutes <= maxMins);
+      recent.sort((a, b) => a.ageMinutes - b.ageMinutes);
 
-    // সব log করো
+      // Fallback: time না পেলে সব posts দাও (DOM order = newest first)
+      const fallback = posts.map(p => p.url);
+
+      return { recent: recent.map(p => p.url), fallback, logs, maxMins, total: posts.length };
+    }, { maxMins: maxAgeMinutes, groupId: currentGroupId });
+
     result.logs.forEach(l => this.logger.info(`[GROUP] ${l}`));
-    result.posts.forEach(p =>
-      this.logger.info(`[GROUP]   ${p.age === null ? 'age=?' : 'age=' + p.age + 'm'} | ${p.url}`)
-    );
+    this.logger.info(`[GROUP] Total: ${result.total} | Recent(≤${result.maxMins}m): ${result.recent.length}`);
 
-    const posts = result.posts;
-    if (posts.length === 0) {
-      this.logger.info('[GROUP] ❌ No post URLs found at all');
-      return [];
+    if (result.recent.length > 0) {
+      this.log('info', `✅ ${result.recent.length} recent post(s) within ${result.maxMins}m`);
+      return result.recent;
     }
 
-    // Recent posts ≤60 min
-    const recent = posts.filter(p => p.age !== null && p.age <= 60).map(p => p.url);
-    if (recent.length > 0) {
-      this.log('info', `🕐 Found ${recent.length} recent post(s) within 1 hour`);
-      return recent;
+    if (result.fallback.length > 0) {
+      this.log('warning', `⚠️ Time not detected — using all ${result.fallback.length} found post(s)`);
+      return result.fallback.slice(0, 3);
     }
 
-    // Time detect হয়নি কিন্তু posts পাওয়া গেছে → first 3 use করো
-    this.log('warning', `⚠️ Time not detected. Using first ${Math.min(3, posts.length)} post(s)`);
-    return posts.slice(0, 3).map(p => p.url);
+    return [];
   }
 
-  // Post এ comment করো - worker.js এর exact logic
   async commentOnPost(postUrl, group) {
     this.logger.info(`[GROUP] Commenting on: ${postUrl}`);
     this.log('info', `💬 Navigating to post...`);
 
-    await this.fbAutomator.navigateToPost(postUrl);
+    await this.page.goto(postUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await this.sleep(3000);
 
-    // Step 1: Starter comment
     const starter = this.getRandomStarter();
     const r1 = await this.fbAutomator.addComment(starter);
-    if (!r1.success) {
-      this.logger.error('[GROUP] Failed to add initial comment');
-      return;
-    }
+    if (!r1.success) { this.logger.error('[GROUP] Failed to add initial comment'); return; }
     await this.sleep(this.randomDelay(2, 5) * 1000);
 
-    // Step 2: Edit with template
     const template = await this.getTemplateComment();
     const final = `Hi ${template}`;
     await this.fbAutomator.editLastComment(final);
     await this.sleep(this.randomDelay(2, 4) * 1000);
 
-    // Step 3: React
     if (this.settings.autoReact && this.shouldReact()) {
       await this.sleep(this.randomDelay(this.settings.reactionDelayMin, this.settings.reactionDelayMax) * 1000);
       const reactResult = await this.fbAutomator.reactToComment();
@@ -422,19 +399,14 @@ class GroupAutomationWorker {
     }
 
     await this.sleep(3000);
-
-    // Step 4: Check status
     const status = await this.fbAutomator.checkCommentStatus(final);
     this.logger.info(`[GROUP] Comment status: ${status}`);
     this.db.logActivity({ accountId: this.account.id, postId: group.id, postUrl, action: 'comment', status, comment: final });
 
-    // Step 5: Delete if pending/declined
     if ((status === 'pending' || status === 'declined') && this.settings.autoDeletePending) {
       await this.sleep(2000);
       const del = await this.fbAutomator.deleteLastComment();
-      if (del.success) {
-        this.log('warning', `🗑️ Deleted ${status} comment`);
-      }
+      if (del.success) this.log('warning', `🗑️ Deleted ${status} comment`);
     } else if (status === 'success') {
       this.db.incrementAccountComments(this.account.id);
       this.db.incrementGroupComments(group.id);
@@ -444,7 +416,6 @@ class GroupAutomationWorker {
     }
   }
 
-  // Helpers
   getRandomStarter() {
     return this.randomStarters[Math.floor(Math.random() * this.randomStarters.length)];
   }
