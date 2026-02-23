@@ -379,43 +379,93 @@ class GroupAutomationWorker {
     await this.page.goto(postUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
     await this.sleep(3000);
 
+    // Step 1: Starter comment
     const starter = this.getRandomStarter();
     const r1 = await this.fbAutomator.addComment(starter);
-    if (!r1.success) { this.logger.error('[GROUP] Failed to add initial comment'); return; }
+    if (!r1.success) {
+      this.logger.error('[GROUP] Failed to add initial comment');
+      return;
+    }
     await this.sleep(this.randomDelay(2, 5) * 1000);
 
+    // Step 2: Edit with final template
     const template = await this.getTemplateComment();
     const final = `Hi ${template}`;
     await this.fbAutomator.editLastComment(final);
     await this.sleep(this.randomDelay(2, 4) * 1000);
 
+    // Step 3: Status check — React এর আগেই করতে হবে
+    // Pending/Declined detect করে delete করবে, react skip করবে
+    const status = await this.fbAutomator.checkCommentStatus(final);
+    this.logger.info(`[GROUP] Comment status: ${status}`);
+
+    // FIX: postId = null — group.id পাঠালে activity table এ FOREIGN KEY error হয়
+    // কারণ activity.postId → posts table reference করে, fb_groups না
+    try {
+      this.db.logActivity({
+        accountId: this.account.id,
+        postId: null,
+        postUrl,
+        action: 'comment',
+        status,
+        comment: final
+      });
+    } catch (e) {
+      this.logger.error(`[GROUP] logActivity error: ${e.message}`);
+    }
+
+    // Step 4: Pending বা Declined → delete করো, return
+    if (status === 'pending' || status === 'declined') {
+      this.log('warning', `⚠️ Comment is ${status} — attempting delete...`);
+      if (this.settings.autoDeletePending) {
+        await this.sleep(2000);
+        // facebook.js এর deleteLastComment এ final text পাঠাও
+        // সে pending/declined keyword বা text দিয়ে comment খুঁজে delete করে
+        const del = await this.fbAutomator.deleteLastComment(final);
+        if (del && del.success) {
+          this.log('warning', `🗑️ Deleted ${status} comment`);
+        } else {
+          this.log('warning', `⚠️ Delete failed: ${(del && del.error) || 'unknown'}`);
+        }
+      } else {
+        this.log('warning', `ℹ️ Auto-delete disabled. ${status} comment left on post.`);
+      }
+      this.sendToRenderer('stats-update', this.db.getStats());
+      return; // react skip, success count বাড়বে না
+    }
+
+    // Step 5: Success → react করো
     if (this.settings.autoReact && this.shouldReact()) {
-      await this.sleep(this.randomDelay(this.settings.reactionDelayMin, this.settings.reactionDelayMax) * 1000);
-      const reactResult = await this.fbAutomator.reactToComment();
-      if (reactResult.success) {
-        this.db.incrementAccountReacts(this.account.id);
-        this.db.logActivity({ accountId: this.account.id, postId: group.id, postUrl, action: 'react', status: 'success' });
+      await this.sleep(this.randomDelay(
+        this.settings.reactionDelayMin,
+        this.settings.reactionDelayMax
+      ) * 1000);
+      try {
+        const reactResult = await this.fbAutomator.reactToComment();
+        if (reactResult && reactResult.success) {
+          this.db.incrementAccountReacts(this.account.id);
+          try {
+            this.db.logActivity({
+              accountId: this.account.id,
+              postId: null,
+              postUrl,
+              action: 'react',
+              status: 'success'
+            });
+          } catch (e) { }
+        }
+      } catch (e) {
+        this.logger.info(`[GROUP] React skipped: ${e.message}`);
       }
     }
 
-    await this.sleep(3000);
-    const status = await this.fbAutomator.checkCommentStatus(final);
-    this.logger.info(`[GROUP] Comment status: ${status}`);
-    this.db.logActivity({ accountId: this.account.id, postId: group.id, postUrl, action: 'comment', status, comment: final });
-
-    if ((status === 'pending' || status === 'declined') && this.settings.autoDeletePending) {
-      await this.sleep(2000);
-      const del = await this.fbAutomator.deleteLastComment();
-      if (del.success) this.log('warning', `🗑️ Deleted ${status} comment`);
-    } else if (status === 'success') {
-      this.db.incrementAccountComments(this.account.id);
-      this.db.incrementGroupComments(group.id);
-      this.db.markUrlAsPosted(this.account.id, postUrl);
-      this.log('success', `✅ Comment posted successfully!`);
-      this.sendToRenderer('stats-update', this.db.getStats());
-    }
+    // Step 6: Success stats
+    this.db.incrementAccountComments(this.account.id);
+    this.db.incrementGroupComments(group.id);
+    this.db.markUrlAsPosted(this.account.id, postUrl);
+    this.log('success', `✅ Comment posted successfully!`);
+    this.sendToRenderer('stats-update', this.db.getStats());
   }
-
   getRandomStarter() {
     return this.randomStarters[Math.floor(Math.random() * this.randomStarters.length)];
   }

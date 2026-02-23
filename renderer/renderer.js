@@ -1679,6 +1679,7 @@ function updateStats(stats) {
   set('declinedComments', stats.declinedComments);
   set('totalGroups', stats.totalGroups || 0);
   set('activeGroups', stats.activeGroups || 0);
+  set('totalGroupComments', stats.totalGroupComments || 0);
 }
 
 // Logs

@@ -97,7 +97,7 @@
             </div>
             <div class="license-item">
               <span class="license-label">📦 Version:</span>
-              <span class="license-value" id="currentVersion">v3.0.1</span>
+              <span class="license-value" id="currentVersion">v4.0.3</span>
             </div>
           </div>
 
@@ -106,10 +106,7 @@
             <span class="icon">🔄</span> Check Updates
           </button>
 
-          <!-- Telegram Contact -->
-          <a href="https://t.me/Minhazulruhan1" target="_blank" class="btn btn-telegram btn-sm">
-            <span class="icon">💬</span> Contact Support
-          </a>
+
         </div>
       </div>
 
@@ -195,6 +192,13 @@
               <div class="stat-info">
                 <div class="stat-label">Active Groups</div>
                 <div class="stat-value" id="activeGroups">0</div>
+              </div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-icon">💬</div>
+              <div class="stat-info">
+                <div class="stat-label">Group Comments</div>
+                <div class="stat-value" id="totalGroupComments">0</div>
               </div>
             </div>
           </div>
@@ -565,1028 +569,911 @@
 
         <!-- User Guide Page -->
         <div id="user-guide-page" class="page">
-          <h1>📖 User Guide - Complete Documentation</h1>
+
+          <!-- License Key Modal -->
+          <div id="licenseModal"
+            style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:9999;align-items:center;justify-content:center;"
+            class="lic-overlay">
+            <div
+              style="background:var(--bg-secondary,#1e1e2e);border:2px solid #3498db;border-radius:16px;padding:40px;width:480px;max-width:90vw;text-align:center;box-shadow:0 20px 60px rgba(52,152,219,0.3);">
+              <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+              <h2 style="margin:0 0 8px 0;color:#3498db;font-size:22px;">License Activation</h2>
+              <p style="color:#aaa;font-size:13px;margin:0 0 24px 0;">Enter your license key to activate this software
+              </p>
+              <div style="position:relative;margin-bottom:8px;">
+                <input type="text" id="licenseKeyInput" placeholder="XXXX-XXXX-XXXX-XXXX"
+                  style="width:100%;padding:14px 50px 14px 16px;border-radius:8px;border:2px solid var(--border,#333);background:var(--bg-tertiary,#181825);color:var(--text-primary,#fff);font-size:15px;font-family:monospace;letter-spacing:2px;box-sizing:border-box;text-transform:uppercase;">
+                <span id="licEyeBtn" onclick="toggleLicKey()"
+                  style="position:absolute;right:14px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:18px;opacity:0.6;">👁️</span>
+              </div>
+              <div id="licenseError"
+                style="color:#e74c3c;font-size:12px;min-height:18px;margin-bottom:12px;display:none;"></div>
+              <button onclick="activateLicense()"
+                style="width:100%;padding:14px;background:#3498db;color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:background 0.2s;">
+                🔓 Activate License
+              </button>
+              <p style="color:#666;font-size:11px;margin:16px 0 0 0;">Need a license key? Contact on Telegram: <a
+                  href="https://t.me/Minhazulruhan1" target="_blank" style="color:#3498db;">@Minhazulruhan1</a></p>
+            </div>
+          </div>
+
+          <!-- Page Header -->
+          <div
+            style="display:flex;align-items:center;justify-content:space-between;margin-bottom:28px;flex-wrap:wrap;gap:12px;">
+            <div>
+              <h1 style="margin:0 0 4px 0;font-size:26px;">📖 User Guide</h1>
+              <p style="margin:0;color:var(--text-secondary);font-size:13px;">Complete documentation for FB Comment
+                Automation v4.0.2</p>
+            </div>
+            <!-- License Status Badge -->
+            <div id="licStatusBadge" onclick="showLicenseModal()"
+              style="display:flex;align-items:center;gap:10px;padding:10px 18px;border-radius:10px;border:1px solid var(--border,#333);background:var(--bg-secondary);cursor:pointer;transition:all 0.2s;">
+              <span id="licStatusDot"
+                style="width:10px;height:10px;border-radius:50%;background:#e74c3c;display:inline-block;"></span>
+              <div style="line-height:1.3;">
+                <div style="font-size:11px;color:#aaa;">License Status</div>
+                <div id="licStatusText" style="font-size:13px;font-weight:600;color:#e74c3c;">Not Activated</div>
+              </div>
+              <span style="font-size:16px;opacity:0.5;">🔑</span>
+            </div>
+          </div>
+
+          <!-- Quick Nav Tabs -->
+          <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;">
+            <button onclick="scrollToSection('guide-info')" class="guide-tab-btn">🤖 About</button>
+            <button onclick="scrollToSection('guide-quickstart')" class="guide-tab-btn">⚡ Quick Start</button>
+            <button onclick="scrollToSection('guide-accounts')" class="guide-tab-btn">👤 Accounts</button>
+            <button onclick="scrollToSection('guide-posts')" class="guide-tab-btn">📌 Posts</button>
+            <button onclick="scrollToSection('guide-groups')" class="guide-tab-btn">📂 Groups</button>
+            <button onclick="scrollToSection('guide-templates')" class="guide-tab-btn">💬 Templates</button>
+            <button onclick="scrollToSection('guide-settings')" class="guide-tab-btn">⚙️ Settings</button>
+            <button onclick="scrollToSection('guide-antiban')" class="guide-tab-btn">🛡️ Anti-Ban</button>
+            <button onclick="scrollToSection('guide-license')" class="guide-tab-btn">🔐 License</button>
+            <button onclick="scrollToSection('guide-troubleshoot')" class="guide-tab-btn">🔧 Troubleshoot</button>
+            <button onclick="scrollToSection('guide-faq')" class="guide-tab-btn">❓ FAQ</button>
+          </div>
 
           <div class="guide-container">
 
-            <!-- ==================== SOFTWARE INFORMATION ==================== -->
-            <div class="guide-section">
+            <!-- ══════════════ SOFTWARE INFO ══════════════ -->
+            <div class="guide-section" id="guide-info">
               <h2>🤖 Software Information</h2>
               <div class="info-card">
-                <div class="info-row">
-                  <span class="info-label">📦 Software Name:</span>
-                  <span class="info-value">FB Comment Automation</span>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                  <div class="info-row"><span class="info-label">📦 Software</span><span class="info-value">FB Comment
+                      Automation</span></div>
+                  <div class="info-row"><span class="info-label">🔢 Version</span><span class="info-value">v4.0.3
+                      Enhanced</span></div>
+                  <div class="info-row"><span class="info-label">📅 Released</span><span class="info-value">February 10,
+                      2026</span></div>
+                  <div class="info-row"><span class="info-label">🖥️ Platform</span><span class="info-value">Windows
+                      10/11 (64-bit)</span></div>
+                  <div class="info-row"><span class="info-label">👨‍💻 Developer</span><span class="info-value">Minhazul
+                      Ruhan</span></div>
+                  <div class="info-row"><span class="info-label">🌐 GitHub</span><span class="info-value"><a
+                        href="https://github.com/minhajulrohan" target="_blank"
+                        class="github-link">github.com/minhajulrohan</a></span></div>
                 </div>
-                <div class="info-row">
-                  <span class="info-label">🔢 Version:</span>
-                  <span class="info-value">2.0.7 Enhanced</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">📅 Release Date:</span>
-                  <span class="info-value">February 2025</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">👨‍💻 Developer:</span>
-                  <span class="info-value">Minhazul Ruhan</span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">💬 Telegram:</span>
-                  <span class="info-value">
-                    <a href="https://t.me/Minhazulruhan1" target="_blank" class="telegram-link">
-                      @Minhazulruhan1
-                    </a>
-                  </span>
-                </div>
-                <div class="info-row">
-                  <span class="info-label">🌐 GitHub:</span>
-                  <span class="info-value">
-                    <a href="https://github.com/minhajulrohan" target="_blank" class="github-link">
-                      github.com/minhajulrohan
-                    </a>
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            <!-- ==================== WHAT THIS SOFTWARE DOES ==================== -->
-            <div class="guide-section">
-              <h2>⚙️ What This Software Does</h2>
-              <div class="info-card">
-                <h3>🎯 Core Functions:</h3>
-                <ul class="guide-list">
-                  <li><strong>🤖 Automated Commenting:</strong> Automatically posts comments on Facebook posts in
-                    groups/pages
-                  </li>
-                  <li><strong>👥 Multiple Accounts:</strong> Manage 10-50+ Facebook accounts simultaneously</li>
-                  <li><strong>📝 Template System:</strong> Create custom comment templates for each account</li>
-                  <li><strong>❤️ Auto-React:</strong> Automatically reacts to own comments (Like, Love, Haha, Wow, Sad,
-                    Angry)
-                  </li>
-                  <li><strong>🛡️ Anti-Ban Protection:</strong> Advanced human-like behavior simulation with WebRTC
-                    blocking,
-                    canvas randomization, and fingerprint protection</li>
-                  <li><strong>🌐 Proxy Support:</strong> Use different proxies for each account (format:
-                    hostname:port:username:password)</li>
-                  <li><strong>📊 Real-time Monitoring:</strong> Track all automation activities with live logs and
-                    statistics</li>
-                  <li><strong>🔄 Auto-Update:</strong> One-click software updates directly from GitHub</li>
-                  <li><strong>✏️ Account Editing:</strong> Edit account details, cookies, proxy, and user agent anytime
-                  </li>
-                  <li><strong>🎭 Device Emulation:</strong> Chrome browser on Windows, Mac, Mac Mini, or iPad</li>
-                  <li><strong>🔒 Bundled Browser:</strong> No separate browser installation needed - everything included
-                  </li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- ==================== INSTALLATION ==================== -->
-            <div class="guide-section">
-              <h2>💿 Installation Guide</h2>
-              <div class="info-card">
-                <h3>System Requirements:</h3>
-                <ul class="guide-list">
-                  <li><strong>OS:</strong> Windows 10/11 (64-bit)</li>
-                  <li><strong>RAM:</strong> Minimum 4GB (8GB recommended)</li>
-                  <li><strong>Storage:</strong> 500MB free space</li>
-                  <li><strong>Internet:</strong> Stable connection required</li>
-                  <li><strong>License:</strong> Valid license key required</li>
-                </ul>
-
-                <h3 style="margin-top: 20px;">Installation Steps:</h3>
-                <ol class="guide-list">
-                  <li><strong>Download:</strong> Get the installer (.exe) from the developer</li>
-                  <li><strong>Run Installer:</strong> Double-click the .exe file</li>
-                  <li><strong>Choose Location:</strong> Select installation folder (or use default)</li>
-                  <li><strong>Install:</strong> Click Install and wait for completion</li>
-                  <li><strong>Launch:</strong> Software will open automatically</li>
-                  <li><strong>Browser Setup:</strong> Chromium browser installs automatically (no action needed!)</li>
-                </ol>
-
-                <div style="background:#2c3e50;padding:15px;border-radius:8px;margin-top:15px;">
-                  <h4 style="color:#3498db;margin:0 0 10px 0;">✨ New Feature: Auto Browser Installation</h4>
-                  <p style="margin:0;color:#ecf0f1;">
-                    The software now includes a bundled Chromium browser! No need to install anything separately.
-                    Everything works out of the box after installing the main application.
-                  </p>
+                <div style="margin-top:20px;">
+                  <h3 style="margin:0 0 12px 0;">🎯 Core Features</h3>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #3498db;font-size:13px;">
+                      🤖 Auto commenting on Facebook posts</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #27ae60;font-size:13px;">
+                      👥 Manage 10-50+ accounts simultaneously</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #e74c3c;font-size:13px;">
+                      📂 Group Mode — auto-find recent posts</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #f39c12;font-size:13px;">
+                      ❤️ Auto-react to own comments</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #9b59b6;font-size:13px;">
+                      🛡️ Anti-ban: WebRTC block, canvas spoof</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #1abc9c;font-size:13px;">
+                      🌐 Per-account proxy & User Agent</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #3498db;font-size:13px;">
+                      🗑️ Auto-delete pending/declined comments</div>
+                    <div
+                      style="padding:10px 14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-left:3px solid #e67e22;font-size:13px;">
+                      🔄 One-click software auto-update</div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- ==================== LICENSE SYSTEM ==================== -->
-            <div class="guide-section">
-              <h2>🔐 License System</h2>
+            <!-- ══════════════ QUICK START ══════════════ -->
+            <div class="guide-section" id="guide-quickstart">
+              <h2>⚡ Quick Start (5 Steps)</h2>
               <div class="info-card">
-                <h3>How License Works:</h3>
-                <ol class="guide-list">
-                  <li><strong>Activation Required:</strong> Software requires a valid license key to run</li>
-                  <li><strong>License Key Format:</strong> 32-character unique key (example: ABC123DEF456GHI789...)</li>
-                  <li><strong>Expiry System:</strong> Each license has an expiration date (30 days, 90 days, 1 year,
-                    etc.)</li>
-                  <li><strong>Device Lock:</strong> License tied to your computer's hardware ID (can't transfer to
-                    another PC
-                    without authorization)</li>
-                  <li><strong>Online Validation:</strong> Checks with Firebase server on every launch</li>
-                </ol>
+                <div style="display:flex;flex-direction:column;gap:16px;">
 
-                <h3 style="margin-top: 20px;">License Activation Steps:</h3>
-                <ol class="guide-list">
-                  <li>Launch the application (first time)</li>
-                  <li>License activation window will appear automatically</li>
-                  <li>Enter your license key (provided by developer)</li>
-                  <li>Click <strong>"Activate License"</strong> button</li>
-                  <li>System validates key from Firebase database</li>
-                  <li>If valid → Software unlocks ✅</li>
-                  <li>If invalid → Error message shown ❌</li>
-                </ol>
+                  <div
+                    style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:var(--bg-tertiary,#181825);border-radius:10px;border-left:4px solid #3498db;">
+                    <div
+                      style="min-width:40px;height:40px;background:#3498db;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;">
+                      1</div>
+                    <div>
+                      <strong style="font-size:15px;">🔐 Activate License</strong>
+                      <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Click the license badge
+                        (top-right of this page) → Enter your key → Click Activate</p>
+                    </div>
+                  </div>
 
-                <h3 style="margin-top: 20px;">License Information Display:</h3>
-                <p>Top-right corner of dashboard shows:</p>
-                <ul class="guide-list">
-                  <li>🗓️ <strong>License Expires:</strong> Exact expiry date</li>
-                  <li>⏰ <strong>Days Remaining:</strong> Countdown to expiry</li>
-                  <li>⚠️ <strong>Warning:</strong> Red alert when less than 7 days left</li>
-                </ul>
+                  <div
+                    style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:var(--bg-tertiary,#181825);border-radius:10px;border-left:4px solid #27ae60;">
+                    <div
+                      style="min-width:40px;height:40px;background:#27ae60;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;">
+                      2</div>
+                    <div>
+                      <strong style="font-size:15px;">👤 Add Accounts</strong>
+                      <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Go to
+                        <strong>Accounts</strong> → Add Account → Paste cookies (from Cookie Editor extension) → Select
+                        device → Generate UA → Save</p>
+                    </div>
+                  </div>
 
-                <h3 style="margin-top: 20px;">Getting a License:</h3>
-                <p>Contact developer on Telegram: <a href="https://t.me/Minhazulruhan1" target="_blank"
-                    style="color:#3498db;font-weight:600;">@Minhazulruhan1</a></p>
-                <p>Mention: Software version, desired duration (30/90/365 days), and payment method.</p>
+                  <div
+                    style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:var(--bg-tertiary,#181825);border-radius:10px;border-left:4px solid #e74c3c;">
+                    <div
+                      style="min-width:40px;height:40px;background:#e74c3c;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;">
+                      3</div>
+                    <div>
+                      <strong style="font-size:15px;">💬 Create Templates</strong>
+                      <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Go to
+                        <strong>Templates</strong> → Select account → Add 3-5 comment templates → Save</p>
+                    </div>
+                  </div>
+
+                  <div
+                    style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:var(--bg-tertiary,#181825);border-radius:10px;border-left:4px solid #f39c12;">
+                    <div
+                      style="min-width:40px;height:40px;background:#f39c12;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;">
+                      4</div>
+                    <div>
+                      <strong style="font-size:15px;">📌 Add Posts or 📂 Groups</strong>
+                      <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;"><strong>Post
+                          Mode:</strong> Posts tab → Add post URLs | <strong>Group Mode:</strong> Groups tab → Add group
+                        URLs. Set mode in <strong>Settings → Automation Mode</strong></p>
+                    </div>
+                  </div>
+
+                  <div
+                    style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:var(--bg-tertiary,#181825);border-radius:10px;border-left:4px solid #9b59b6;">
+                    <div
+                      style="min-width:40px;height:40px;background:#9b59b6;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:18px;color:#fff;">
+                      5</div>
+                    <div>
+                      <strong style="font-size:15px;">▶️ Start Automation</strong>
+                      <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Click <strong>"Start
+                          Automation"</strong> at the top → Status turns 🟢 Running → Monitor in <strong>Live
+                          Logs</strong></p>
+                    </div>
+                  </div>
+
+                </div>
               </div>
             </div>
 
-            <!-- ==================== ACCOUNT MANAGEMENT ==================== -->
-            <div class="guide-section">
-              <h2>👥 Account Management</h2>
+            <!-- ══════════════ ACCOUNTS ══════════════ -->
+            <div class="guide-section" id="guide-accounts">
+              <h2>👤 Account Management</h2>
               <div class="info-card">
 
-                <h3>📌 Adding Accounts:</h3>
-                <ol class="guide-list">
-                  <li>Go to <strong>Accounts</strong> tab</li>
-                  <li>Click <strong>"+ Add Account"</strong> button</li>
-                  <li>Fill in the form:
-                    <ul style="margin-top:8px;">
-                      <li><strong>Account Name:</strong> Give it a unique name (e.g., "Account 1", "John's FB")</li>
-                      <li><strong>Cookies:</strong> Paste Facebook cookies in JSON format (get from Cookie Editor
-                        extension)</li>
-                      <li><strong>Proxy (Optional):</strong> Enter proxy in format:
-                        <code>hostname:port:username:password</code><br>
-                        Example: <code>proxy.example.com:8080:myuser:mypass</code><br>
-                        Leave empty to use your actual IP address
-                      </li>
-                      <li><strong>User Agent:</strong> Select device type and click "Generate UA", or enter manually
-                      </li>
-                    </ul>
-                  </li>
-                  <li>Click <strong>"Save Account"</strong></li>
-                  <li>Account appears in table with status: Active ✅</li>
-                </ol>
-
-                <h3 style="margin-top: 20px;">🎭 User Agent Selection (New Feature!):</h3>
-                <div style="background:#27ae60;padding:15px;border-radius:8px;margin:10px 0;">
-                  <h4 style="margin:0 0 10px 0;color:#fff;">Two Methods to Set User Agent:</h4>
-
-                  <p style="margin:10px 0;color:#fff;"><strong>Method 1: Auto-Generate (Recommended)</strong></p>
-                  <ol style="color:#fff;margin:0;">
-                    <li>Select device from dropdown:
-                      <ul style="margin-top:5px;">
-                        <li>💻 <strong>Windows (Chrome)</strong> - Desktop PC, 1920x1080</li>
-                        <li>🖥️ <strong>Mac (Chrome)</strong> - MacBook, 1440x900</li>
-                        <li>🖥️ <strong>Mac Mini (Chrome)</strong> - Mac Mini, 1920x1080</li>
-                        <li>📱 <strong>iPad (Chrome)</strong> - iPad, 1366x1024</li>
-                      </ul>
-                    </li>
-                    <li>Click <strong>"🎲 Generate UA"</strong> button</li>
-                    <li>Chrome User Agent generated automatically with correct device profile</li>
-                  </ol>
-
-                  <p style="margin:15px 0 10px 0;color:#fff;"><strong>Method 2: Manual Entry</strong></p>
-                  <ol style="color:#fff;margin:0;">
-                    <li>Check ☑ <strong>"Enter User Agent manually"</strong> checkbox</li>
-                    <li>Input field becomes editable</li>
-                    <li>Type or paste your own User Agent string</li>
-                    <li>Device type auto-detected from UA (Windows/Mac/iPad)</li>
+                <h3>📋 How to Get Facebook Cookies</h3>
+                <div style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:16px;margin-bottom:16px;">
+                  <ol class="guide-list" style="margin:0;">
+                    <li>Install <strong>Cookie Editor</strong> extension in Chrome/Edge</li>
+                    <li>Go to <strong>facebook.com</strong> and log in</li>
+                    <li>Click the Cookie Editor icon → Click <strong>"Export"</strong> → <strong>"JSON"</strong></li>
+                    <li>Copy the entire JSON array</li>
+                    <li>Paste into the <strong>"Cookies"</strong> field in the Add Account form</li>
                   </ol>
                 </div>
 
-                <h3 style="margin-top: 20px;">✏️ Editing Accounts:</h3>
-                <ol class="guide-list">
-                  <li>In Accounts table, find the account you want to edit</li>
-                  <li>Click <strong>"✏️ Edit"</strong> button</li>
-                  <li>Form opens with current data pre-filled</li>
-                  <li>Modify any field:
-                    <ul style="margin-top:8px;">
-                      <li>Change account name</li>
-                      <li>Update cookies (if logged out)</li>
-                      <li>Change or remove proxy</li>
-                      <li>Regenerate User Agent</li>
-                    </ul>
-                  </li>
-                  <li>Click <strong>"💾 Update Account"</strong> to save</li>
-                  <li>Or click <strong>"❌ Cancel"</strong> to discard changes</li>
-                </ol>
+                <h3>🎭 User Agent Setup</h3>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+                  <div
+                    style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-top:3px solid #27ae60;">
+                    <strong style="color:#27ae60;">✅ Method 1: Auto-Generate (Recommended)</strong>
+                    <ol style="margin:8px 0 0 0;font-size:13px;color:var(--text-secondary);">
+                      <li>Select device: Windows / Mac / Mac Mini / iPad</li>
+                      <li>Click <strong>"🎲 Generate UA"</strong></li>
+                      <li>Done — unique UA generated automatically</li>
+                    </ol>
+                  </div>
+                  <div
+                    style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;border-top:3px solid #3498db;">
+                    <strong style="color:#3498db;">Method 2: Manual Entry</strong>
+                    <ol style="margin:8px 0 0 0;font-size:13px;color:var(--text-secondary);">
+                      <li>Check ☑ "Enter User Agent manually"</li>
+                      <li>Type or paste your own UA string</li>
+                      <li>Device type auto-detected</li>
+                    </ol>
+                  </div>
+                </div>
 
-                <h3 style="margin-top: 20px;">🔧 Account Actions:</h3>
+                <h3>🌐 Proxy Format</h3>
+                <div
+                  style="background:var(--bg-tertiary,#181825);padding:12px 16px;border-radius:8px;font-family:monospace;font-size:13px;margin-bottom:16px;">
+                  <div style="color:#f39c12;">Format: <span style="color:#fff;">hostname:port:username:password</span>
+                  </div>
+                  <div style="color:#aaa;margin-top:4px;">Example: proxy.example.com:8080:myuser:mypass</div>
+                  <div style="color:#aaa;margin-top:4px;">Leave empty to use your real IP</div>
+                </div>
+
+                <h3>⚠️ Important Rules</h3>
                 <ul class="guide-list">
-                  <li><strong>✏️ Edit:</strong> Modify account details</li>
-                  <li><strong>⏸️ Disable/▶️ Enable:</strong> Temporarily disable without deleting</li>
-                  <li><strong>🗑️ Delete:</strong> Permanently remove account</li>
+                  <li>Each account needs a <strong>unique User Agent</strong> (software prevents duplicates)</li>
+                  <li>Use <strong>different proxies</strong> per account (residential proxies recommended)</li>
+                  <li>Cookies expire every 7-14 days — update if automation stops working</li>
+                  <li>Keep accounts <strong>enabled</strong> (green status) for automation to use them</li>
                 </ul>
 
-                <h3 style="margin-top: 20px;">📝 How to Get Cookies:</h3>
-                <ol class="guide-list">
-                  <li>Install <strong>Cookie Editor</strong> extension in Chrome/Edge</li>
-                  <li>Go to <strong>facebook.com</strong> and login to your account</li>
-                  <li>Click Cookie Editor extension icon</li>
-                  <li>Click <strong>"Export"</strong> → <strong>"JSON"</strong></li>
-                  <li>Copy the entire JSON array</li>
-                  <li>Paste into "Cookies" field in software</li>
-                </ol>
-
-                <h3 style="margin-top: 20px;">⚠️ Important Notes:</h3>
-                <ul class="guide-list">
-                  <li>Each account needs <strong>unique User Agent</strong> (software prevents duplicates)</li>
-                  <li>Use <strong>different proxies</strong> for each account (recommended for safety)</li>
-                  <li>Cookies expire - re-login on Facebook and update cookies if automation stops working</li>
-                  <li>Keep accounts <strong>enabled</strong> for automation to use them</li>
-                </ul>
               </div>
             </div>
 
-            <!-- ==================== POST MANAGEMENT ==================== -->
-            <div class="guide-section">
+            <!-- ══════════════ POSTS ══════════════ -->
+            <div class="guide-section" id="guide-posts">
               <h2>📌 Post Management</h2>
               <div class="info-card">
 
-                <h3>Adding Posts:</h3>
+                <h3>Adding Posts</h3>
                 <ol class="guide-list">
-                  <li>Go to <strong>Posts</strong> tab</li>
-                  <li>Click <strong>"+ Add Post"</strong> button</li>
-                  <li>Enter details:
-                    <ul style="margin-top:8px;">
-                      <li><strong>Post URL:</strong> Full Facebook post link (from group or page)</li>
-                      <li><strong>Title (Optional):</strong> Short description to identify post</li>
-                      <li><strong>Assign to Account:</strong> Select which account(s) will comment</li>
-                    </ul>
-                  </li>
-                  <li>Click <strong>"Save Post"</strong></li>
+                  <li>Go to <strong>Posts</strong> tab → Click <strong>"+ Add Post"</strong></li>
+                  <li>Select account to assign to</li>
+                  <li>Paste the full Facebook post URL</li>
+                  <li>Add optional title → Click <strong>"Save Post"</strong></li>
                 </ol>
 
-                <h3 style="margin-top: 20px;">📥 Bulk Import:</h3>
+                <h3 style="margin-top:16px;">📥 Bulk Import</h3>
                 <ol class="guide-list">
-                  <li>Click <strong>"📥 Import Posts"</strong> button</li>
-                  <li>Select account to assign posts to</li>
-                  <li>Paste multiple URLs (one per line)</li>
-                  <li>Click <strong>"Import"</strong></li>
-                  <li>All posts added instantly</li>
+                  <li>Click <strong>"📋 Import Multiple"</strong></li>
+                  <li>Select account → Paste URLs (one per line) → Click Import</li>
                 </ol>
 
-                <h3 style="margin-top: 20px;">Managing Posts:</h3>
-                <ul class="guide-list">
-                  <li><strong>View Posts:</strong> See all added posts in table</li>
-                  <li><strong>Delete Posts:</strong> Click 🗑️ to remove</li>
-                  <li><strong>Track Status:</strong> See last visit time and comment count</li>
-                </ul>
+                <h3 style="margin-top:16px;">✅ Supported URL Formats</h3>
+                <div
+                  style="background:var(--bg-tertiary,#181825);padding:12px 16px;border-radius:8px;font-family:monospace;font-size:12px;">
+                  <div style="color:#27ae60;">✓ https://www.facebook.com/groups/123456/posts/789012/</div>
+                  <div style="color:#27ae60;margin-top:4px;">✓ https://www.facebook.com/username/posts/123456789</div>
+                  <div style="color:#27ae60;margin-top:4px;">✓ https://www.facebook.com/permalink.php?story_fbid=...
+                  </div>
+                </div>
 
-                <h3 style="margin-top: 20px;">⚠️ Post URL Format:</h3>
-                <p>Supported formats:</p>
-                <ul class="guide-list">
-                  <li><code>https://www.facebook.com/groups/123456/posts/789012/</code></li>
-                  <li><code>https://www.facebook.com/username/posts/123456789</code></li>
-                  <li><code>https://www.facebook.com/permalink.php?story_fbid=...</code></li>
-                </ul>
               </div>
             </div>
 
-            <!-- ==================== TEMPLATE SYSTEM ==================== -->
-            <div class="guide-section">
-              <h2>📝 Template System</h2>
+            <!-- ══════════════ GROUPS ══════════════ -->
+            <div class="guide-section" id="guide-groups">
+              <h2>📂 Facebook Groups Mode</h2>
               <div class="info-card">
 
-                <h3>Creating Templates:</h3>
+                <div
+                  style="background:linear-gradient(135deg,#1a3a5c,#1e2d3d);border:1px solid #3498db;border-radius:10px;padding:16px;margin-bottom:20px;">
+                  <h4 style="margin:0 0 8px 0;color:#3498db;">🤖 How Group Mode Works</h4>
+                  <ol style="margin:0;color:#ddd;font-size:13px;line-height:1.8;">
+                    <li>Navigates to each group URL you added</li>
+                    <li>Scrolls the feed to load recent posts</li>
+                    <li>Finds posts within a <strong>random 1-59 minute window</strong></li>
+                    <li>Comments on up to 3 recent posts per group</li>
+                    <li>Rotates to next group with a delay</li>
+                  </ol>
+                </div>
+
+                <h3>Adding Groups</h3>
                 <ol class="guide-list">
-                  <li>Go to <strong>Templates</strong> tab</li>
-                  <li>Select an account from dropdown</li>
-                  <li>Click <strong>"+ Add Template"</strong></li>
-                  <li>Type your comment template (without "Hi " prefix)</li>
-                  <li>Click <strong>"💾 Save Templates"</strong></li>
+                  <li>Go to <strong>Facebook Groups</strong> tab</li>
+                  <li>Click <strong>"+ Add Group"</strong> → Select account → Paste group URL → Save</li>
+                  <li>Or click <strong>"📋 Import Multiple Groups"</strong> for bulk import</li>
                 </ol>
 
-                <h3 style="margin-top: 20px;">💡 Template Tips:</h3>
+                <h3 style="margin-top:16px;">⚙️ Enabling Group Mode</h3>
+                <ol class="guide-list">
+                  <li>Go to <strong>Settings</strong> → <strong>Automation Mode</strong></li>
+                  <li>Select <strong>"📂 Facebook Groups Mode"</strong></li>
+                  <li>Save Settings → Start Automation</li>
+                </ol>
+
+                <div
+                  style="background:var(--bg-tertiary,#181825);border-left:4px solid #f39c12;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:16px;">
+                  <strong style="color:#f39c12;">⚡ Group Mode vs Post Mode:</strong>
+                  <ul style="margin:8px 0 0 0;font-size:13px;color:var(--text-secondary);">
+                    <li><strong>Post Mode:</strong> You add specific post URLs — comments those exact posts</li>
+                    <li><strong>Group Mode:</strong> You add group URLs — auto-finds fresh posts and comments</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- ══════════════ TEMPLATES ══════════════ -->
+            <div class="guide-section" id="guide-templates">
+              <h2>💬 Comment Templates</h2>
+              <div class="info-card">
+
+                <h3>Creating Templates</h3>
+                <ol class="guide-list">
+                  <li>Go to <strong>Templates</strong> tab → Select an account</li>
+                  <li>Click <strong>"+ Add Template"</strong> → Write your comment</li>
+                  <li>Add 3-5 templates for variety → Click <strong>"Save Templates"</strong></li>
+                </ol>
+
+                <h3 style="margin-top:16px;">🔄 How Automation Uses Templates</h3>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:12px 0;">
+                  <div style="padding:8px 14px;background:#3498db;border-radius:20px;font-size:12px;color:#fff;">1. Post
+                    "Amazing!" (starter)</div>
+                  <div style="color:#aaa;">→</div>
+                  <div style="padding:8px 14px;background:#27ae60;border-radius:20px;font-size:12px;color:#fff;">2. Pick
+                    random template</div>
+                  <div style="color:#aaa;">→</div>
+                  <div style="padding:8px 14px;background:#9b59b6;border-radius:20px;font-size:12px;color:#fff;">3. Add
+                    "Hi " prefix + mutate</div>
+                  <div style="color:#aaa;">→</div>
+                  <div style="padding:8px 14px;background:#e74c3c;border-radius:20px;font-size:12px;color:#fff;">4. Edit
+                    comment to final text</div>
+                </div>
+
+                <h3>💡 Template Tips</h3>
                 <ul class="guide-list">
-                  <li><strong>Natural Language:</strong> Write like a real person</li>
-                  <li><strong>Variety:</strong> Create 3-5 different templates per account</li>
-                  <li><strong>Length:</strong> Keep templates 10-50 words</li>
-                  <li><strong>Relevance:</strong> Templates should make sense for any post</li>
+                  <li>Write <strong>natural, human-like</strong> sentences</li>
+                  <li>Keep templates <strong>10-50 words</strong> long</li>
+                  <li>Make them <strong>generic enough</strong> to work on any post</li>
+                  <li>Create <strong>3-5 different templates</strong> per account for variety</li>
+                  <li>Avoid promotional/spam language</li>
                 </ul>
 
-                <h3 style="margin-top: 20px;">🔄 How Templates Are Used:</h3>
-                <ol class="guide-list">
-                  <li>Software picks a <strong>random template</strong> from account's list</li>
-                  <li>Adds <strong>"Hi "</strong> prefix automatically</li>
-                  <li>Applies <strong>mutation</strong> (random variations)</li>
-                  <li>Posts as comment</li>
-                </ol>
-
-                <h3 style="margin-top: 20px;">Example Templates:</h3>
-                <div style="background:#34495e;padding:15px;border-radius:8px;margin-top:10px;">
-                  <p style="color:#ecf0f1;margin:5px 0;"><strong>Template 1:</strong> "This is really helpful! Thanks
-                    for
-                    sharing."</p>
-                  <p style="color:#ecf0f1;margin:5px 0;"><strong>Template 2:</strong> "Great information! I was looking
-                    for this."
+                <div style="background:var(--bg-tertiary,#181825);padding:14px;border-radius:8px;margin-top:12px;">
+                  <strong style="font-size:12px;color:#aaa;">EXAMPLE TEMPLATES:</strong>
+                  <p style="color:#ddd;margin:8px 0 4px 0;font-size:13px;">"This is really helpful! Thanks for sharing."
                   </p>
-                  <p style="color:#ecf0f1;margin:5px 0;"><strong>Template 3:</strong> "Awesome content! Keep posting
-                    more like
+                  <p style="color:#ddd;margin:4px 0;font-size:13px;">"Great information! I was looking for exactly
                     this."</p>
-                  <p style="color:#95a5a6;margin:10px 0 5px 0;font-style:italic;">Final comment example: "Hi This is
-                    really
-                    helpful! Thanks for sharing. 👍"</p>
-                </div>
-              </div>
-            </div>
-
-            <!-- ==================== AUTOMATION WORKFLOW ==================== -->
-            <div class="guide-section">
-              <h2>🚀 Automation Workflow</h2>
-              <div class="info-card">
-
-                <h3>Complete Process:</h3>
-
-                <div class="workflow-step">
-                  <h4>1️⃣ Preparation Phase</h4>
-                  <ul>
-                    <li>Add Facebook accounts with cookies and proxies</li>
-                    <li>Add posts you want to comment on</li>
-                    <li>Assign posts to accounts</li>
-                    <li>Create comment templates for each account</li>
-                    <li>Configure settings (delays, limits, working hours)</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>2️⃣ Starting Automation</h4>
-                  <ul>
-                    <li>Click <strong>"▶️ Start Automation"</strong> button (top of screen)</li>
-                    <li>Software begins processing accounts one by one</li>
-                    <li>Status changes to: <strong>Running</strong> 🟢</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>3️⃣ Browser Launches</h4>
-                  <ul>
-                    <li>Chromium browser opens for first enabled account</li>
-                    <li>Proxy applied (if configured)</li>
-                    <li>User Agent set to selected device</li>
-                    <li>Anti-detection scripts activated</li>
-                    <li>Cookies loaded to login automatically</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>4️⃣ Commenting Process (Per Post)</h4>
-                  <ul>
-                    <li><strong>Navigate:</strong> Opens Facebook post URL</li>
-                    <li><strong>Scroll:</strong> Human-like scrolling</li>
-                    <li><strong>Initial Comment:</strong> Posts random short comment (e.g., "Nice!")</li>
-                    <li><strong>Wait:</strong> Delay (2-5 seconds)</li>
-                    <li><strong>Edit Comment:</strong> Replaces with template + mutation</li>
-                    <li><strong>React (Optional):</strong> Adds reaction if enabled</li>
-                    <li><strong>Status Check:</strong> Checks if comment pending/declined</li>
-                    <li><strong>Auto-Delete:</strong> Removes if pending (optional setting)</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>5️⃣ Account Rotation</h4>
-                  <ul>
-                    <li>After reaching daily limit or finishing all posts</li>
-                    <li>Browser closes</li>
-                    <li>Waits for account switch delay</li>
-                    <li>Moves to next enabled account</li>
-                    <li>Repeats process</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>6️⃣ Monitoring</h4>
-                  <ul>
-                    <li><strong>Dashboard:</strong> View real-time statistics</li>
-                    <li><strong>Live Logs:</strong> See every action as it happens</li>
-                    <li><strong>Activity:</strong> Check history of all comments</li>
-                  </ul>
-                </div>
-
-                <div class="workflow-step">
-                  <h4>7️⃣ Stopping Automation</h4>
-                  <ul>
-                    <li>Click <strong>"⏸️ Stop Automation"</strong> button</li>
-                    <li>Current browser finishes its task</li>
-                    <li>Browser closes gracefully</li>
-                    <li>Automation paused</li>
-                  </ul>
+                  <p style="color:#ddd;margin:4px 0;font-size:13px;">"Awesome content! Keep posting more like this."</p>
+                  <p style="color:#aaa;margin:10px 0 0 0;font-size:12px;font-style:italic;">Final output: "Hi This is
+                    really helpful! Thanks for sharing. 👍"</p>
                 </div>
 
               </div>
             </div>
 
-            <!-- ==================== SETTINGS EXPLAINED ==================== -->
-            <div class="guide-section">
+            <!-- ══════════════ SETTINGS ══════════════ -->
+            <div class="guide-section" id="guide-settings">
               <h2>⚙️ Settings Explained</h2>
               <div class="info-card">
 
-                <h3>💬 Comment Settings:</h3>
-                <ul class="guide-list">
-                  <li><strong>Comment Delay Min/Max:</strong> Wait time between comments (30-120 sec recommended)
-                    <ul style="margin-top:5px;">
-                      <li>Too fast = ban risk</li>
-                      <li>Too slow = inefficient</li>
-                      <li>Random between min/max = more human-like</li>
-                    </ul>
-                  </li>
-                  <li><strong>Max Comments Per Account:</strong> Daily limit per account (20-30 recommended)
-                    <ul style="margin-top:5px;">
-                      <li>Prevents account from over-commenting</li>
-                      <li>Resets at midnight automatically</li>
-                    </ul>
-                  </li>
-                  <li><strong>Account Switch Delay:</strong> Wait before switching to next account (60-180 sec)
-                    <ul style="margin-top:5px;">
-                      <li>Gives time for Facebook to process</li>
-                      <li>Reduces server load</li>
-                    </ul>
-                  </li>
-                  <li><strong>Post Rotation Delay:</strong> Wait between different posts (10-30 sec)
-                    <ul style="margin-top:5px;">
-                      <li>Makes behavior more natural</li>
-                      <li>Simulates real browsing</li>
-                    </ul>
-                  </li>
-                  <li><strong>Auto Delete Pending Comments:</strong> Remove comments stuck in review
-                    <ul style="margin-top:5px;">
-                      <li>Enable: Automatically deletes pending comments</li>
-                      <li>Disable: Keeps all comments</li>
-                    </ul>
-                  </li>
-                </ul>
+                <div style="display:grid;gap:12px;">
 
-                <h3 style="margin-top: 20px;">❤️ React Settings:</h3>
-                <ul class="guide-list">
-                  <li><strong>Enable Auto React:</strong> Toggle on/off
-                    <ul style="margin-top:5px;">
-                      <li>On: Reacts after commenting</li>
-                      <li>Off: Only comments, no reactions</li>
-                    </ul>
-                  </li>
-                  <li><strong>Reaction Types:</strong> Choose reactions (multiple selection)
-                    <ul style="margin-top:5px;">
-                      <li>👍 Like</li>
-                      <li>❤️ Love</li>
-                      <li>😆 Haha</li>
-                      <li>😮 Wow</li>
-                      <li>😢 Sad</li>
-                      <li>😠 Angry</li>
-                    </ul>
-                  </li>
-                  <li><strong>Reaction Probability:</strong> Chance of reacting (0-100%)
-                    <ul style="margin-top:5px;">
-                      <li>70% = Reacts 7 out of 10 times</li>
-                      <li>100% = Always reacts</li>
-                      <li>0% = Never reacts (same as disabled)</li>
-                    </ul>
-                  </li>
-                  <li><strong>Reaction Delay Min/Max:</strong> Wait before reacting (2-8 sec recommended)
-                    <ul style="margin-top:5px;">
-                      <li>Makes it look natural</li>
-                      <li>Prevents instant reaction detection</li>
-                    </ul>
-                  </li>
-                </ul>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>💬 Comment Delay (seconds)</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Wait time between comments.
+                      <span style="color:#27ae60;">Recommended: 30-120 sec.</span> Too fast = ban risk. Random between
+                      min/max = more human-like.</p>
+                  </div>
 
-                <h3 style="margin-top: 20px;">🖥️ Browser Settings:</h3>
-                <ul class="guide-list">
-                  <li><strong>Headless Mode:</strong> Run browser invisibly
-                    <ul style="margin-top:5px;">
-                      <li>✅ Pros: Faster, uses less resources</li>
-                      <li>❌ Cons: Can't see what's happening, harder to debug</li>
-                      <li>⚠️ Not Recommended: Use only if you know what you're doing</li>
-                    </ul>
-                  </li>
-                </ul>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>📊 Max Comments Per Account</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Daily limit per account.
+                      <span style="color:#27ae60;">Recommended: 20-30.</span> Resets at midnight automatically.</p>
+                  </div>
 
-                <h3 style="margin-top: 20px;">⏰ Working Hours:</h3>
-                <ul class="guide-list">
-                  <li><strong>Enable Restriction:</strong> Only run during specific hours
-                    <ul style="margin-top:5px;">
-                      <li>On: Automation only works between start-end time</li>
-                      <li>Off: Works 24/7</li>
-                    </ul>
-                  </li>
-                  <li><strong>Start Hour / End Hour:</strong> Set time range (0-23 format)
-                    <ul style="margin-top:5px;">
-                      <li>Example: Start=9, End=21 → Works 9 AM to 9 PM</li>
-                      <li>Outside hours: Automation paused automatically</li>
-                    </ul>
-                  </li>
-                </ul>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>🔄 Account Switch Delay</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Wait before switching to
+                      next account. <span style="color:#27ae60;">Recommended: 60-180 sec.</span></p>
+                  </div>
 
-                <h3 style="margin-top: 20px;">💡 Recommended Settings:</h3>
-                <div style="background:#27ae60;padding:15px;border-radius:8px;margin-top:10px;">
-                  <ul style="color:#fff;margin:0;">
-                    <li>Comment Delay: 30-120 sec</li>
-                    <li>Max Comments: 20 per account</li>
-                    <li>Account Switch: 120 sec</li>
-                    <li>Auto React: Enabled, 70% probability</li>
-                    <li>Reaction Types: Like + Love</li>
-                    <li>Headless: Disabled (for monitoring)</li>
-                    <li>Working Hours: 9 AM - 9 PM</li>
-                  </ul>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>⏱️ Group Rotation Delay</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Wait between groups in Group
+                      Mode. <span style="color:#27ae60;">Recommended: 30-120 sec.</span></p>
+                  </div>
+
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>🗑️ Auto Delete Pending Comments</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Automatically deletes
+                      comments stuck in "Pending" or "Declined" review. <span style="color:#27ae60;">Keep
+                        Enabled.</span></p>
+                  </div>
+
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>👻 Headless Mode</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Run browser invisibly.
+                      Faster but harder to debug. <span style="color:#e74c3c;">Not recommended for beginners.</span></p>
+                  </div>
+
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong>⏰ Working Hours</strong>
+                    <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Restrict automation to
+                      specific hours. <span style="color:#27ae60;">Recommended: 9 AM – 9 PM.</span> Makes behavior look
+                      more human.</p>
+                  </div>
+
                 </div>
+
+                <div
+                  style="background:linear-gradient(135deg,#1a3a2a,#1e2d20);border:1px solid #27ae60;border-radius:10px;padding:16px;margin-top:16px;">
+                  <strong style="color:#27ae60;">✅ Recommended Settings</strong>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:10px;font-size:13px;">
+                    <div>Comment Delay: <strong>30–120 sec</strong></div>
+                    <div>Max Comments: <strong>20/account</strong></div>
+                    <div>Account Switch: <strong>120 sec</strong></div>
+                    <div>Auto React: <strong>Enabled, 70%</strong></div>
+                    <div>Headless: <strong>Disabled</strong></div>
+                    <div>Working Hours: <strong>9 AM – 9 PM</strong></div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
-            <!-- ==================== ANTI-DETECTION FEATURES ==================== -->
-            <div class="guide-section">
-              <h2>🛡️ Anti-Detection & Security Features</h2>
+            <!-- ══════════════ ANTI-BAN ══════════════ -->
+            <div class="guide-section" id="guide-antiban">
+              <h2>🛡️ Anti-Detection & Security</h2>
               <div class="info-card">
 
-                <h3>🔒 Built-in Protection Systems:</h3>
-
-                <div class="feature-card">
-                  <h4>1. WebRTC IP Leak Prevention</h4>
-                  <p><strong>What it protects:</strong> Your real IP address</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Completely disables WebRTC in browser</li>
-                    <li>Blocks all WebRTC APIs (RTCPeerConnection, RTCDataChannel)</li>
-                    <li>3-layer blocking (browser flags + context + page level)</li>
-                    <li>Result: Even with proxy, real IP never leaks</li>
-                  </ul>
-                  <p style="margin-top:8px;"><strong>Testing:</strong> Visit browserleaks.com/webrtc - should show "No
-                    Leak" ✅</p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#3498db;">🔒 WebRTC IP Leak Prevention</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Completely disables WebRTC — your real IP
+                      never leaks even with proxy. Test at browserleaks.com/webrtc</p>
+                  </div>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#9b59b6;">🎨 Canvas Fingerprint Spoof</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Adds random noise to canvas data. Each
+                      session has a different fingerprint — prevents cross-session tracking.</p>
+                  </div>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#27ae60;">🔊 Audio Context Randomization</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Randomizes audio fingerprint data to prevent
+                      audio-based tracking.</p>
+                  </div>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#f39c12;">🎮 WebGL GPU Spoofing</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Spoofs GPU as "Intel Iris OpenGL Engine" —
+                      all accounts appear as same generic GPU.</p>
+                  </div>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#e74c3c;">🤖 Bot Detection Prevention</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Sets navigator.webdriver = false, removes
+                      automation indicators, disables AutomationControlled flag.</p>
+                  </div>
+                  <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
+                    <strong style="color:#1abc9c;">📍 Timezone & Geolocation</strong>
+                    <p style="margin:6px 0 0 0;font-size:12px;color:#aaa;">Sets timezone to match proxy location.
+                      Default: New York. Prevents location-based detection.</p>
+                  </div>
                 </div>
 
-                <div class="feature-card">
-                  <h4>2. Canvas Fingerprint Randomization</h4>
-                  <p><strong>What it protects:</strong> Device identification via canvas rendering</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Adds random noise to canvas data</li>
-                    <li>Each session generates different fingerprint</li>
-                    <li>Prevents tracking across sessions</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>3. Audio Context Randomization</h4>
-                  <p><strong>What it protects:</strong> Audio fingerprinting</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Randomizes audio frequency data</li>
-                    <li>Makes audio fingerprint unpredictable</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>4. WebGL Fingerprint Spoofing</h4>
-                  <p><strong>What it protects:</strong> GPU identification</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Spoofs GPU vendor: Intel Inc.</li>
-                    <li>Spoofs GPU renderer: Intel Iris OpenGL Engine</li>
-                    <li>All accounts appear as same generic GPU</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>5. Font Fingerprint Protection</h4>
-                  <p><strong>What it protects:</strong> Installed fonts enumeration</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Returns common fonts list only</li>
-                    <li>Hides actual installed fonts</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>6. Geolocation Spoofing</h4>
-                  <p><strong>What it protects:</strong> Real location</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Returns proxy location coordinates</li>
-                    <li>Default: New York (40.7128, -74.0060)</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>7. Timezone Consistency</h4>
-                  <p><strong>What it protects:</strong> Timezone leaks</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>Sets timezone to America/New_York</li>
-                    <li>Matches proxy location</li>
-                  </ul>
-                </div>
-
-                <div class="feature-card">
-                  <h4>8. Automation Detection Prevention</h4>
-                  <p><strong>What it protects:</strong> Bot detection</p>
-                  <p><strong>How:</strong></p>
-                  <ul style="margin-top:8px;">
-                    <li>navigator.webdriver = false</li>
-                    <li>Removes automation indicators</li>
-                    <li>Disables AutomationControlled feature</li>
-                  </ul>
-                </div>
-
-                <h3 style="margin-top: 20px;">🎭 Behavioral Anti-Detection:</h3>
+                <h3>🎭 Behavioral Anti-Detection</h3>
                 <ul class="guide-list">
-                  <li><strong>Random Delays:</strong> Every action has random wait time</li>
-                  <li><strong>Human-like Scrolling:</strong> Natural page scrolling patterns</li>
-                  <li><strong>Typing Simulation:</strong> Types character by character (not instant paste)</li>
-                  <li><strong>Mouse Movements:</strong> Random cursor movements</li>
-                  <li><strong>Account Cooldowns:</strong> Prevents over-activity</li>
+                  <li><strong>Random Delays:</strong> Every action has randomized wait time</li>
+                  <li><strong>Human-like Typing:</strong> Types character-by-character (not instant paste)</li>
+                  <li><strong>Natural Scrolling:</strong> Smooth, random-speed scrolling</li>
+                  <li><strong>Account Cooldowns:</strong> Prevents over-activity per account</li>
                 </ul>
 
-                <div style="background:#e74c3c;padding:15px;border-radius:8px;margin-top:15px;">
-                  <h4 style="margin:0 0 10px 0;color:#fff;">⚠️ Important Security Notes:</h4>
-                  <ul style="color:#fff;margin:0;">
+                <div style="background:#e74c3c;padding:14px;border-radius:8px;margin-top:16px;">
+                  <strong style="color:#fff;">⚠️ Critical Security Rules</strong>
+                  <ul style="color:#fff;margin:8px 0 0 0;font-size:13px;">
                     <li>Always use <strong>unique proxies</strong> for each account</li>
-                    <li>Don't exceed <strong>20-30 comments per account daily</strong></li>
-                    <li>Enable <strong>working hours</strong> restriction (looks more human)</li>
-                    <li>Use <strong>different User Agents</strong> for each account</li>
-                    <li>Test with browserleaks.com before running automation</li>
+                    <li>Never exceed <strong>20-30 comments/account/day</strong></li>
+                    <li>Enable <strong>Working Hours</strong> restriction</li>
+                    <li>Use <strong>different User Agents</strong> per account</li>
                   </ul>
                 </div>
+
               </div>
             </div>
 
-            <!-- ==================== MONITORING & LOGS ==================== -->
-            <div class="guide-section">
-              <h2>📊 Monitoring & Statistics</h2>
+            <!-- ══════════════ LICENSE ══════════════ -->
+            <div class="guide-section" id="guide-license">
+              <h2>🔐 License System</h2>
               <div class="info-card">
 
-                <h3>📈 Dashboard:</h3>
-                <ul class="guide-list">
-                  <li><strong>Total Comments:</strong> All comments posted by all accounts</li>
-                  <li><strong>Total Reacts:</strong> All reactions given</li>
-                  <li><strong>Total Accounts:</strong> Number of accounts added</li>
-                  <li><strong>Active Accounts:</strong> Enabled accounts ready to work</li>
-                  <li><strong>Pending Comments:</strong> Comments waiting for approval</li>
-                  <li><strong>Declined Comments:</strong> Comments rejected by admins</li>
-                </ul>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;">
+                  <div
+                    style="padding:20px;background:var(--bg-tertiary,#181825);border-radius:10px;border:1px solid var(--border,#333);text-align:center;">
+                    <div style="font-size:36px;margin-bottom:8px;">🔐</div>
+                    <div id="guideStatusText" style="font-size:14px;font-weight:600;color:#e74c3c;">Not Activated</div>
+                    <div style="font-size:12px;color:#aaa;margin-top:4px;">Current Status</div>
+                    <button onclick="showLicenseModal()"
+                      style="margin-top:12px;padding:8px 20px;background:#3498db;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:13px;">
+                      🔑 Manage License
+                    </button>
+                  </div>
+                  <div
+                    style="padding:20px;background:var(--bg-tertiary,#181825);border-radius:10px;border:1px solid var(--border,#333);">
+                    <strong style="font-size:13px;">License Details</strong>
+                    <div style="margin-top:10px;font-size:13px;color:var(--text-secondary);">
+                      <div
+                        style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">
+                        <span>Expires:</span><span id="guideLicExpiry" style="color:var(--text-primary);">—</span>
+                      </div>
+                      <div
+                        style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border,#333);">
+                        <span>Days Left:</span><span id="guideLicDays" style="color:var(--text-primary);">—</span>
+                      </div>
+                      <div style="display:flex;justify-content:space-between;padding:6px 0;">
+                        <span>Version:</span><span style="color:var(--text-primary);">v4.0.2</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                <h3 style="margin-top: 20px;">🔴 Live Logs:</h3>
-                <p><strong>Real-time activity feed showing:</strong></p>
-                <ul class="guide-list">
-                  <li>🟢 <strong>Info:</strong> General actions (browser opened, navigating, etc.)</li>
-                  <li>🔵 <strong>Success:</strong> Successful actions (comment posted, reacted, etc.)</li>
-                  <li>🟡 <strong>Warning:</strong> Important notices (pending comment, limit reached)</li>
-                  <li>🔴 <strong>Error:</strong> Problems (login failed, checkpoint detected)</li>
-                </ul>
-
-                <h3 style="margin-top: 20px;">📜 Activity History:</h3>
-                <p><strong>Complete record of all actions:</strong></p>
-                <ul class="guide-list">
-                  <li>Timestamp of each action</li>
-                  <li>Account name</li>
-                  <li>Action type (comment, react, delete)</li>
-                  <li>Post URL</li>
-                  <li>Status (success/failed)</li>
-                </ul>
-
-                <h3 style="margin-top: 20px;">🔍 Filters:</h3>
-                <ul class="guide-list">
-                  <li><strong>By Account:</strong> See activity of specific account</li>
-                  <li><strong>By Date Range:</strong> View history for specific period</li>
-                  <li><strong>By Type:</strong> Filter comments, reacts, or deletions</li>
-                </ul>
-              </div>
-            </div>
-
-            <!-- ==================== AUTO-UPDATE SYSTEM ==================== -->
-            <div class="guide-section">
-              <h2>🔄 Auto-Update System</h2>
-              <div class="info-card">
-
-                <h3>How It Works:</h3>
+                <h3>🔑 How to Activate</h3>
                 <ol class="guide-list">
-                  <li><strong>Automatic Check:</strong> Software checks for updates on startup and every 6 hours</li>
-                  <li><strong>Notification:</strong> If update available, notification appears top-right</li>
-                  <li><strong>Manual Check:</strong> Click "Check Updates" button anytime</li>
-                  <li><strong>Update Process:</strong>
-                    <ul style="margin-top:8px;">
-                      <li>Click "Update Now" button</li>
-                      <li>Installer downloads with progress bar</li>
-                      <li>Click "Install" when download complete</li>
-                      <li>Old version closes</li>
-                      <li>Installer runs automatically</li>
-                      <li>New version opens after installation</li>
-                    </ul>
-                  </li>
+                  <li>Click the <strong>License Status badge</strong> (top right of this page)</li>
+                  <li>Enter your license key in the format: <code>XXXX-XXXX-XXXX-XXXX</code></li>
+                  <li>Click <strong>"Activate License"</strong></li>
+                  <li>Status changes to ✅ Active</li>
                 </ol>
 
-                <h3 style="margin-top: 20px;">Update Notifications:</h3>
+                <h3 style="margin-top:16px;">📋 License Rules</h3>
                 <ul class="guide-list">
-                  <li><strong>🎉 New Update Available:</strong> Shows current vs. latest version</li>
-                  <li><strong>📥 Downloading:</strong> Progress bar with percentage</li>
-                  <li><strong>✅ Ready to Install:</strong> Download complete, ready to update</li>
+                  <li>License is <strong>locked to hardware</strong> — cannot transfer to another PC</li>
+                  <li>Software <strong>stops working</strong> when license expires</li>
+                  <li>Contact developer to <strong>renew or transfer</strong></li>
+                  <li>Key is <strong>case-sensitive</strong> — enter exactly as provided</li>
                 </ul>
 
-                <h3 style="margin-top: 20px;">⚠️ Update Notes:</h3>
-                <ul class="guide-list">
-                  <li>Updates are fetched from GitHub releases</li>
-                  <li>Your data (accounts, posts, templates) is preserved</li>
-                  <li>Automation must be stopped before updating</li>
-                  <li>Internet connection required</li>
-                </ul>
+                <div
+                  style="background:var(--bg-tertiary,#181825);border:1px solid #3498db;border-radius:8px;padding:14px;margin-top:16px;text-align:center;">
+                  <p style="margin:0;font-size:13px;color:#aaa;">Need a license or renewal? Contact developer:</p>
+                  <a href="https://t.me/Minhazulruhan1" target="_blank"
+                    style="display:inline-block;margin-top:8px;padding:8px 20px;background:#229ED9;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:13px;">💬
+                    Telegram: @Minhazulruhan1</a>
+                </div>
+
               </div>
             </div>
 
-            <!-- ==================== TROUBLESHOOTING ==================== -->
-            <div class="guide-section">
+            <!-- ══════════════ TROUBLESHOOT ══════════════ -->
+            <div class="guide-section" id="guide-troubleshoot">
               <h2>🔧 Troubleshooting</h2>
               <div class="info-card">
+                <div style="display:flex;flex-direction:column;gap:12px;">
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: "License Invalid" Error</h4>
-                  <p><strong>Cause:</strong> License expired, wrong key, or network issue</p>
-                  <p><strong>Solutions:</strong></p>
-                  <ul>
-                    <li>Check license expiry date</li>
-                    <li>Verify you entered correct key (case-sensitive)</li>
-                    <li>Check internet connection</li>
-                    <li>Contact developer for renewal</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ "License Invalid" Error</summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Check license expiry date</li>
+                      <li>Verify key is entered correctly (case-sensitive)</li>
+                      <li>Check internet connection</li>
+                      <li>Contact developer for renewal: @Minhazulruhan1</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: "Browser Not Found" Error</h4>
-                  <p><strong>Cause:</strong> Chromium browser not installed or corrupted</p>
-                  <p><strong>Solutions:</strong></p>
-                  <ul>
-                    <li>Reinstall the software (browser installs automatically)</li>
-                    <li>If manual install needed: Run <code>npx playwright install chromium</code> in terminal</li>
-                    <li>Check antivirus isn't blocking browser files</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Automation Not Commenting</summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Check cookies are valid — re-login to Facebook and update</li>
+                      <li>Verify templates are created for the account</li>
+                      <li>Ensure account is <strong>Enabled</strong> (green status)</li>
+                      <li>Check daily comment limit hasn't been reached</li>
+                      <li>Test proxy is working</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: Account Shows "Banned" Status</h4>
-                  <p><strong>Cause:</strong> Facebook checkpoint detected</p>
-                  <p><strong>Solutions:</strong></p>
-                  <ul>
-                    <li>Login to Facebook manually and complete checkpoint</li>
-                    <li>Update cookies after verification</li>
-                    <li>Disable account temporarily</li>
-                    <li>Use that account less frequently</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Account Shows "Banned" Status
+                    </summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Facebook checkpoint detected — manually verify account on Facebook</li>
+                      <li>Update cookies after manual verification</li>
+                      <li>Use a different proxy for this account</li>
+                      <li>Reduce comment frequency for this account</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: Comments Not Posting</h4>
-                  <p><strong>Possible Causes:</strong></p>
-                  <ul>
-                    <li><strong>Cookies Expired:</strong> Re-login to Facebook and update cookies</li>
-                    <li><strong>Proxy Issue:</strong> Test proxy, try different proxy</li>
-                    <li><strong>Group Settings:</strong> Admin approval required for posts</li>
-                    <li><strong>Rate Limit:</strong> Daily limit reached</li>
-                    <li><strong>No Templates:</strong> Create templates for account</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Group Mode Not Finding Posts
+                    </summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Group may have no recent posts (within last hour)</li>
+                      <li>Account may not be a member of the group</li>
+                      <li>Check if group is public or requires membership</li>
+                      <li>Try adding another group with more activity</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: "WebRTC Leak Detected"</h4>
-                  <p><strong>Cause:</strong> Anti-detection not working properly</p>
-                  <p><strong>Solutions:</strong></p>
-                  <ul>
-                    <li>Update to latest software version</li>
-                    <li>Restart application completely</li>
-                    <li>Test at browserleaks.com/webrtc</li>
-                    <li>Should show: RTCPeerConnection = False</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Comments Pending/Declined</summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Group admin has post approval enabled</li>
+                      <li>Enable <strong>Auto Delete Pending</strong> in Settings</li>
+                      <li>Try different groups or post templates</li>
+                      <li>Reduce automation speed for this group</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: Slow Performance</h4>
-                  <p><strong>Solutions:</strong></p>
-                  <ul>
-                    <li>Enable headless mode (Settings → Browser)</li>
-                    <li>Close other applications</li>
-                    <li>Reduce number of concurrent accounts</li>
-                    <li>Upgrade RAM (8GB+ recommended)</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Browser Not Found / Slow
+                      Performance</summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Reinstall the software (Chromium installs automatically)</li>
+                      <li>Run: <code>npx playwright install chromium</code></li>
+                      <li>Check antivirus isn't blocking browser files</li>
+                      <li>Enable Headless Mode to reduce resource usage</li>
+                      <li>Upgrade RAM to 8GB+ for better performance</li>
+                    </ul>
+                  </details>
 
-                <div class="troubleshoot-item">
-                  <h4>❌ Problem: Proxy Not Working</h4>
-                  <p><strong>Checks:</strong></p>
-                  <ul>
-                    <li>Verify format: <code>hostname:port:username:password</code></li>
-                    <li>Test proxy with online checker</li>
-                    <li>Ensure proxy supports HTTP/HTTPS</li>
-                    <li>Check proxy expiry/credits</li>
-                  </ul>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;color:#e74c3c;font-size:14px;">❌ Proxy Not Working</summary>
+                    <ul style="margin:10px 0 0 16px;font-size:13px;color:var(--text-secondary);">
+                      <li>Verify format: <code>hostname:port:username:password</code></li>
+                      <li>Test proxy with online checker</li>
+                      <li>Ensure proxy supports HTTP/HTTPS</li>
+                      <li>Check proxy credits/expiry</li>
+                    </ul>
+                  </details>
 
-                <h3 style="margin-top: 20px;">📞 Getting Help:</h3>
-                <div style="background:#3498db;padding:15px;border-radius:8px;">
-                  <p style="color:#fff;margin:0;"><strong>Contact Developer:</strong></p>
-                  <p style="color:#fff;margin:10px 0;">Telegram: <a href="https://t.me/Minhazulruhan1"
-                      style="color:#fff;font-weight:600;text-decoration:underline;">@Minhazulruhan1</a></p>
-                  <p style="color:#fff;margin:0;"><strong>When reporting issues, include:</strong></p>
-                  <ul style="color:#fff;margin:10px 0 0 0;">
-                    <li>Software version</li>
-                    <li>Error message (screenshot)</li>
-                    <li>Steps to reproduce</li>
-                    <li>Operating system</li>
-                  </ul>
                 </div>
               </div>
             </div>
 
-            <!-- ==================== BEST PRACTICES ==================== -->
-            <div class="guide-section">
-              <h2>💡 Best Practices</h2>
-              <div class="info-card">
-
-                <h3>🎯 For Maximum Safety:</h3>
-                <ul class="guide-list">
-                  <li><strong>Use Proxies:</strong> Always use different proxies for each account</li>
-                  <li><strong>Unique User Agents:</strong> Each account should have different UA</li>
-                  <li><strong>Moderate Activity:</strong> Don't exceed 20-30 comments per account daily</li>
-                  <li><strong>Working Hours:</strong> Restrict to 9 AM - 9 PM (looks human)</li>
-                  <li><strong>Random Delays:</strong> Use 30-120 sec comment delays</li>
-                  <li><strong>Template Variety:</strong> Create 3-5 different templates per account</li>
-                  <li><strong>Monitor Regularly:</strong> Check Live Logs for any issues</li>
-                  <li><strong>Update Cookies:</strong> Refresh cookies every 7-14 days</li>
-                </ul>
-
-                <h3 style="margin-top: 20px;">⚠️ What To Avoid:</h3>
-                <ul class="guide-list" style="color:#e74c3c;">
-                  <li><strong>Same Proxy for All:</strong> Facebook will link accounts</li>
-                  <li><strong>Too Fast:</strong> Delays under 20 seconds look suspicious</li>
-                  <li><strong>24/7 Activity:</strong> Real humans sleep</li>
-                  <li><strong>Identical Comments:</strong> Use mutation and templates</li>
-                  <li><strong>Headless Mode:</strong> Unless you know what you're doing</li>
-                  <li><strong>Ignoring Warnings:</strong> Check Live Logs for issues</li>
-                </ul>
-
-                <h3 style="margin-top: 20px;">📊 Recommended Setup:</h3>
-                <div style="background:#27ae60;padding:15px;border-radius:8px;">
-                  <ul style="color:#fff;margin:0;">
-                    <li><strong>Accounts:</strong> 10-20 accounts maximum</li>
-                    <li><strong>Proxies:</strong> Residential proxies (not datacenter)</li>
-                    <li><strong>User Agents:</strong> Mix of Windows, Mac, iPad</li>
-                    <li><strong>Templates:</strong> 3-5 per account, natural language</li>
-                    <li><strong>Daily Limits:</strong> 20 comments per account</li>
-                    <li><strong>Delays:</strong> 45-90 sec between comments</li>
-                    <li><strong>Working Hours:</strong> 9 AM - 9 PM enabled</li>
-                    <li><strong>Auto React:</strong> Enabled, 70% probability</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <!-- ==================== FAQ ==================== -->
-            <div class="guide-section">
+            <!-- ══════════════ FAQ ══════════════ -->
+            <div class="guide-section" id="guide-faq">
               <h2>❓ Frequently Asked Questions</h2>
               <div class="info-card">
+                <div style="display:flex;flex-direction:column;gap:10px;">
 
-                <div class="faq-item">
-                  <h4>Q: Is this software safe to use?</h4>
-                  <p><strong>A:</strong> The software includes advanced anti-detection features (WebRTC blocking, canvas
-                    randomization, etc.), but there's always a risk when automating Facebook. Use responsibly, with
-                    moderate
-                    activity, proxies, and follow best practices.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: Is this software safe to use?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">The software includes
+                      advanced anti-detection features, but automating Facebook always carries some risk. Follow best
+                      practices: use proxies, keep delays moderate, and don't exceed 20-30 comments/day per account.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: Will my accounts get banned?</h4>
-                  <p><strong>A:</strong> If you follow best practices (proxies, delays, limits), the risk is minimized.
-                    However,
-                    no automation is 100% safe. Facebook's detection improves constantly.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: How many accounts can I run?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">Technically unlimited, but
+                      10-20 accounts is recommended. Each account needs a unique proxy and User Agent for safety.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: Can I use free proxies?</h4>
-                  <p><strong>A:</strong> Not recommended. Free proxies are often banned by Facebook, slow, and
-                    unreliable. Use
-                    paid residential proxies for best results.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: Can I use free proxies?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">Not recommended. Free
+                      proxies are often banned by Facebook and unreliable. Use paid residential proxies for best
+                      results.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: How many accounts can I run?</h4>
-                  <p><strong>A:</strong> Technically unlimited, but recommended: 10-20 accounts. More accounts = more
-                    proxies
-                    needed, more computer resources, and higher management complexity.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: How do I renew my license?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">Contact the developer on
+                      Telegram: <a href="https://t.me/Minhazulruhan1" target="_blank"
+                        style="color:#3498db;">@Minhazulruhan1</a>. Software stops working when expired.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: Do I need programming knowledge?</h4>
-                  <p><strong>A:</strong> No! The software has a user-friendly interface. Just follow this guide.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: Can I transfer license to another PC?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">License is hardware-locked.
+                      Contact developer for a transfer authorization.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: Can I run this 24/7?</h4>
-                  <p><strong>A:</strong> You can, but it's not recommended. Enable working hours restriction (9 AM - 9
-                    PM) to
-                    mimic human behavior.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: What if comments are always pending?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">Enable "Auto Delete Pending
+                      Comments" in Settings. Also try groups with less strict moderation, or reduce comment frequency.
+                    </p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: What if my license expires?</h4>
-                  <p><strong>A:</strong> Software will stop working. Contact developer on Telegram to renew.</p>
-                </div>
+                  <details style="background:var(--bg-tertiary,#181825);border-radius:8px;padding:14px;cursor:pointer;">
+                    <summary style="font-weight:600;font-size:14px;">Q: Do cookies expire? How often should I update
+                      them?</summary>
+                    <p style="margin:10px 0 0 0;font-size:13px;color:var(--text-secondary);">Yes, Facebook cookies
+                      expire every 7-14 days. If automation stops working, re-login to Facebook and re-export cookies
+                      using Cookie Editor extension.</p>
+                  </details>
 
-                <div class="faq-item">
-                  <h4>Q: Can I transfer license to another computer?</h4>
-                  <p><strong>A:</strong> No, license is locked to hardware. Contact developer for authorization to
-                    transfer.</p>
-                </div>
-
-                <div class="faq-item">
-                  <h4>Q: How do I get cookies?</h4>
-                  <p><strong>A:</strong> Install "Cookie Editor" Chrome extension → Login to Facebook → Export cookies
-                    as JSON →
-                    Paste in software.</p>
-                </div>
-
-                <div class="faq-item">
-                  <h4>Q: What if comments are pending?</h4>
-                  <p><strong>A:</strong> Enable "Auto Delete Pending Comments" in Settings. Software will automatically
-                    remove
-                    them.</p>
-                </div>
-
-                <div class="faq-item">
-                  <h4>Q: Can I edit accounts after adding them?</h4>
-                  <p><strong>A:</strong> Yes! Click the "✏️ Edit" button next to any account to modify name, cookies,
-                    proxy, or
-                    User Agent.</p>
-                </div>
-
-                <div class="faq-item">
-                  <h4>Q: Why are all User Agents Chrome now?</h4>
-                  <p><strong>A:</strong> For consistency and better anti-detection. You can select Windows, Mac, Mac
-                    Mini, or iPad
-                    - all using Chrome browser. This provides better fingerprint consistency while maintaining device
-                    variety.</p>
                 </div>
               </div>
             </div>
 
-            <!-- ==================== DISCLAIMER ==================== -->
+            <!-- ══════════════ DISCLAIMER ══════════════ -->
             <div class="guide-section">
               <h2>⚖️ Legal Disclaimer</h2>
-              <div class="info-card" style="background:#e74c3c;">
-                <ul class="guide-list" style="color:#fff;">
+              <div class="info-card" style="background:rgba(231,76,60,0.15);border:1px solid #e74c3c;">
+                <ul class="guide-list" style="color:var(--text-primary);">
                   <li>This software is for <strong>educational and automation purposes only</strong></li>
                   <li>Users are fully responsible for complying with <strong>Facebook's Terms of Service</strong></li>
                   <li>Developer is <strong>not responsible</strong> for any misuse, account bans, or legal issues</li>
-                  <li>Use at your <strong>own risk</strong></li>
-                  <li><strong>Respect</strong> Facebook's policies, rate limits, and community guidelines</li>
-                  <li>This software is <strong>proprietary</strong> and requires a valid license</li>
-                  <li>Unauthorized distribution, modification, or reverse engineering is <strong>prohibited</strong>
-                  </li>
+                  <li>License is <strong>non-transferable</strong> without developer authorization</li>
+                  <li>Unauthorized distribution or reverse engineering is <strong>strictly prohibited</strong></li>
                 </ul>
-
-                <h3 style="margin-top: 20px;color:#fff;">📜 License & Copyright:</h3>
-                <p style="color:#fff;margin:0;">© 2025 Minhazul Ruhan. All rights reserved.</p>
+                <p style="color:#aaa;font-size:12px;margin:12px 0 0 0;">© 2026 Minhazul Ruhan. All rights reserved.</p>
               </div>
             </div>
 
-            <!-- ==================== FOOTER ==================== -->
+            <!-- ══════════════ FOOTER ══════════════ -->
             <div class="guide-section">
-              <div class="info-card" style="background:#34495e;text-align:center;">
-                <h3 style="color:#3498db;">📞 Support & Contact</h3>
-                <p style="color:#ecf0f1;margin:10px 0;">
-                  For support, updates, or license inquiries:
-                </p>
-                <p style="margin:10px 0;">
+              <div
+                style="background:var(--bg-secondary);border:1px solid var(--border,#333);border-radius:12px;padding:24px;text-align:center;">
+                <div style="display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;">
+                  <div>
+                    <div style="font-size:13px;color:#aaa;">Developer</div>
+                    <div style="font-weight:600;">Minhazul Ruhan</div>
+                  </div>
+                  <div style="width:1px;height:40px;background:var(--border,#333);"></div>
+                  <div>
+                    <div style="font-size:13px;color:#aaa;">GitHub</div>
+                    <a href="https://github.com/minhajulrohan" target="_blank"
+                      style="color:#3498db;font-weight:600;text-decoration:none;">github.com/minhajulrohan</a>
+                  </div>
+                  <div style="width:1px;height:40px;background:var(--border,#333);"></div>
                   <a href="https://t.me/Minhazulruhan1" target="_blank"
-                    style="color:#3498db;font-size:18px;font-weight:600;text-decoration:none;">
-                    💬 Telegram: @Minhazulruhan1
+                    style="display:flex;align-items:center;gap:8px;padding:10px 20px;background:#229ED9;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">
+                    💬 Telegram Support
                   </a>
-                </p>
-                <p style="margin:10px 0;">
-                  <a href="https://github.com/minhajulrohan" target="_blank"
-                    style="color:#3498db;font-weight:600;text-decoration:none;">
-                    🌐 GitHub: github.com/minhajulrohan
-                  </a>
-                </p>
-                <p style="color:#95a5a6;margin:20px 0 0 0;font-size:12px;">
-                  FB Comment Automation v2.0.7 Enhanced | February 2025
-                </p>
+                </div>
+                <p style="color:#666;font-size:11px;margin:16px 0 0 0;">FB Comment Automation v4.0.3 Enhanced | © 2026
+                  Minhazul Ruhan</p>
               </div>
             </div>
 
           </div>
 
+          <!-- Guide Tab & License JS -->
+          <style>
+            .guide-tab-btn {
+              padding: 7px 14px;
+              background: var(--bg-secondary, #1e1e2e);
+              border: 1px solid var(--border, #333);
+              border-radius: 20px;
+              color: var(--text-secondary);
+              cursor: pointer;
+              font-size: 12px;
+              transition: all 0.2s;
+              white-space: nowrap;
+            }
+
+            .guide-tab-btn:hover {
+              background: #3498db;
+              color: #fff;
+              border-color: #3498db;
+            }
+
+            .lic-overlay {
+              display: none;
+            }
+
+            .lic-overlay.active {
+              display: flex !important;
+            }
+
+            details summary::-webkit-details-marker {
+              color: #3498db;
+            }
+
+            details[open] summary {
+              color: #3498db;
+            }
+          </style>
+
+          <script>
+            // ── Guide section scroll ──
+            function scrollToSection(id) {
+              const el = document.getElementById(id);
+              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+
+            // ── License Modal ──
+            function showLicenseModal() {
+              const modal = document.getElementById('licenseModal');
+              if (modal) modal.style.display = 'flex';
+              // Close on overlay click
+              modal.onclick = function (e) {
+                if (e.target === modal) modal.style.display = 'none';
+              };
+            }
+
+            function toggleLicKey() {
+              const inp = document.getElementById('licenseKeyInput');
+              if (!inp) return;
+              inp.type = inp.type === 'password' ? 'text' : 'password';
+            }
+
+            function activateLicense() {
+              const key = (document.getElementById('licenseKeyInput')?.value || '').trim().toUpperCase();
+              const errEl = document.getElementById('licenseError');
+
+              // Basic format validation: XXXX-XXXX-XXXX-XXXX
+              const pattern = /^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
+              if (!key) {
+                showLicError('Please enter your license key');
+                return;
+              }
+              if (!pattern.test(key)) {
+                showLicError('Invalid format. Expected: XXXX-XXXX-XXXX-XXXX');
+                return;
+              }
+
+              // Send to main process via ipcRenderer
+              if (typeof ipcRenderer !== 'undefined') {
+                ipcRenderer.invoke('activate-license', { key }).then(result => {
+                  if (result && result.success) {
+                    document.getElementById('licenseModal').style.display = 'none';
+                    updateLicenseUI(result);
+                  } else {
+                    showLicError(result?.message || 'Invalid or expired license key');
+                  }
+                }).catch(err => {
+                  showLicError('Connection error. Check internet and try again.');
+                });
+              } else {
+                // Fallback: store locally (for testing)
+                localStorage.setItem('licenseKey', key);
+                document.getElementById('licenseModal').style.display = 'none';
+                updateLicenseUI({ active: true, key, expiresAt: null, daysLeft: null });
+              }
+            }
+
+            function showLicError(msg) {
+              const el = document.getElementById('licenseError');
+              if (el) { el.textContent = msg; el.style.display = 'block'; }
+            }
+
+            function updateLicenseUI(data) {
+              const isActive = data && (data.success || data.active);
+              const color = isActive ? '#27ae60' : '#e74c3c';
+              const text = isActive ? '✅ Active' : 'Not Activated';
+
+              // Header badge
+              const dot = document.getElementById('licStatusDot');
+              const statusText = document.getElementById('licStatusText');
+              if (dot) dot.style.background = color;
+              if (statusText) { statusText.textContent = text; statusText.style.color = color; }
+
+              // Guide section
+              const guideStatus = document.getElementById('guideStatusText');
+              if (guideStatus) { guideStatus.textContent = text; guideStatus.style.color = color; }
+
+              // Details
+              if (data.expiresAt || data.expiry) {
+                const expEl = document.getElementById('guideLicExpiry');
+                if (expEl) expEl.textContent = data.expiresAt || data.expiry;
+              }
+              if (data.daysLeft !== undefined && data.daysLeft !== null) {
+                const daysEl = document.getElementById('guideLicDays');
+                if (daysEl) {
+                  daysEl.textContent = data.daysLeft + ' days';
+                  daysEl.style.color = data.daysLeft <= 7 ? '#e74c3c' : data.daysLeft <= 30 ? '#f39c12' : '#27ae60';
+                }
+              }
+
+              // Header license info
+              if (document.getElementById('licenseExpiry') && (data.expiresAt || data.expiry)) {
+                document.getElementById('licenseExpiry').textContent = data.expiresAt || data.expiry;
+              }
+              if (document.getElementById('licenseDays') && data.daysLeft !== null) {
+                document.getElementById('licenseDays').textContent = data.daysLeft + ' days';
+              }
+            }
+
+            // ── Load license status on page load ──
+            document.addEventListener('DOMContentLoaded', function () {
+              if (typeof ipcRenderer !== 'undefined') {
+                ipcRenderer.invoke('get-license-status').then(status => {
+                  if (status) updateLicenseUI(status);
+                }).catch(() => { });
+              } else {
+                // Fallback: check localStorage
+                const storedKey = localStorage.getItem('licenseKey');
+                if (storedKey) updateLicenseUI({ active: true });
+              }
+            });
+          </script>
 
         </div>
       </div>
     </div>
+  </div>
   </div>
 
   <!-- Modals -->
