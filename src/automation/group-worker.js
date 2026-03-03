@@ -117,7 +117,10 @@ class GroupAutomationWorker {
   }
 
   async processGroups() {
-    const commentsPerGroup = 3;
+    // settings থেকে commentsPerGroup নেবে, default 3
+    const commentsPerGroup = (this.settings.commentsPerGroup && this.settings.commentsPerGroup > 0)
+      ? this.settings.commentsPerGroup
+      : 3;
 
     for (let gi = 0; gi < this.groups.length; gi++) {
       const group = this.groups[gi];
@@ -132,55 +135,88 @@ class GroupAutomationWorker {
       this.logger.info(`[GROUP] === Navigating to: ${group.url}`);
 
       try {
+        // প্রথমবার group এ navigate করো
         await this.page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
-
-        // ── FIX: বেশি wait করো যাতে Facebook feed fully render হয় ──
-        // আগে 5s ছিল — Facebook group feed render হতে 8-10s লাগে
         await this.sleep(10000);
 
         const title = await this.page.title();
         this.logger.info(`[GROUP] Page: "${title}" | URL: ${this.page.url()}`);
 
-        // Scroll করে আরো posts load করো
-        await this.scrollToLoadFeed();
-
-        // Post URLs বের করো
-        const postUrls = await this.getPostUrlsFromPage();
-        this.logger.info(`[GROUP] Found ${postUrls.length} post URLs`);
-
-        if (postUrls.length === 0) {
-          this.log('warning', `⚠️ No posts found in group. Skipping.`);
-          this.db.updateGroupVisit(group.id);
-          continue;
-        }
-
-        const targets = postUrls.slice(0, commentsPerGroup);
-        this.log('info', `💬 Will comment on ${targets.length} post(s)`);
-
+        // ── মূল loop: commentsPerGroup বার comment করবে এই group এ ──
+        // প্রতিবার: group এ ফিরে যাও → scroll → নতুন post খোঁজো → comment করো
         let done = 0;
-        for (const postUrl of targets) {
-          const freshAcc = this.db.getAccounts().find(a => a.id === this.account.id);
-          if (!freshAcc || freshAcc.commentsToday >= this.settings.maxCommentsPerAccount) break;
+        const usedUrls = new Set(); // এই session এ already used post URLs
 
-          if (this.db.hasPostedToUrl(this.account.id, postUrl)) {
-            this.logger.info(`[GROUP] Already commented: ${postUrl}`);
+        for (let ci = 0; ci < commentsPerGroup; ci++) {
+          // Daily limit check
+          const freshAcc = this.db.getAccounts().find(a => a.id === this.account.id);
+          if (!freshAcc || freshAcc.commentsToday >= this.settings.maxCommentsPerAccount) {
+            this.log('warning', `⚠️ Daily limit reached. Stopping group loop.`);
+            break;
+          }
+
+          this.log('info', `🔄 Comment ${ci + 1}/${commentsPerGroup} in group: ${group.name || group.url}`);
+
+          // ── প্রতিটা iteration এ group এ ফিরে যাও (ci > 0 হলে) ──
+          if (ci > 0) {
+            try {
+              await this.page.goto(group.url, { waitUntil: 'domcontentloaded', timeout: 60000 });
+              await this.sleep(8000);
+            } catch (navErr) {
+              this.logger.error(`[GROUP] Re-navigate error: ${navErr.message}`);
+              continue;
+            }
+          }
+
+          // ── Scroll করে নতুন posts load করো ──
+          await this.scrollToLoadFeed();
+
+          // ── Post URLs বের করো ──
+          const postUrls = await this.getPostUrlsFromPage();
+          this.logger.info(`[GROUP] Found ${postUrls.length} post URLs (iteration ${ci + 1})`);
+
+          if (postUrls.length === 0) {
+            this.log('warning', `⚠️ No posts found in iteration ${ci + 1}. Skipping.`);
             continue;
           }
 
-          try {
-            await this.commentOnPost(postUrl, group);
-            done++;
-            if (done < targets.length) {
-              const d = this.randomDelay(this.settings.commentDelayMin, this.settings.commentDelayMax);
-              await this.sleep(d * 1000);
+          // ── এমন একটা post খোঁজো যেটায় আগে comment করা হয়নি ──
+          // usedUrls (এই session) এবং db.hasPostedToUrl (সব সময়ের) দুটোই check করো
+          let targetUrl = null;
+          for (const url of postUrls) {
+            if (usedUrls.has(url)) continue;
+            if (this.db.hasPostedToUrl(this.account.id, url)) {
+              this.logger.info(`[GROUP] Already commented (DB): ${url}`);
+              continue;
             }
+            targetUrl = url;
+            break;
+          }
+
+          if (!targetUrl) {
+            this.log('warning', `⚠️ No new post found in iteration ${ci + 1}. All already commented.`);
+            continue;
+          }
+
+          // ── Comment করো ──
+          usedUrls.add(targetUrl); // session এ mark করো
+          try {
+            await this.commentOnPost(targetUrl, group);
+            done++;
           } catch (e) {
             this.logger.error(`[GROUP] Comment error: ${e.message}`);
+          }
+
+          // ── পরের iteration এর আগে delay ──
+          if (ci < commentsPerGroup - 1) {
+            const d = this.randomDelay(this.settings.commentDelayMin, this.settings.commentDelayMax);
+            this.log('info', `⏱️ Waiting ${d}s before next comment...`);
+            await this.sleep(d * 1000);
           }
         }
 
         this.db.updateGroupVisit(group.id);
-        this.log('success', `✅ Group done: ${done} comment(s) posted`);
+        this.log('success', `✅ Group done: ${done}/${commentsPerGroup} comment(s) posted`);
 
         if (gi < this.groups.length - 1) {
           const min = (this.settings.groupDelayMin || 30);
@@ -366,7 +402,7 @@ class GroupAutomationWorker {
 
     if (result.fallback.length > 0) {
       this.log('warning', `⚠️ Time not detected — using all ${result.fallback.length} found post(s)`);
-      return result.fallback.slice(0, 3);
+      return result.fallback;
     }
 
     return [];

@@ -97,7 +97,7 @@
             </div>
             <div class="license-item">
               <span class="license-label">📦 Version:</span>
-              <span class="license-value" id="currentVersion">v4.0.3</span>
+              <span class="license-value" id="currentVersion">v4.0.5</span>
             </div>
           </div>
 
@@ -462,6 +462,11 @@
               </div>
 
               <div class="setting-item">
+                <label>Comments Per Group (প্রতি group এ কতটি comment):</label>
+                <input type="number" id="commentsPerGroup" class="form-control" value="10" min="1" max="50">
+              </div>
+
+              <div class="setting-item">
                 <label>Group Rotation Delay - Min (seconds):</label>
                 <input type="number" id="groupDelayMin" class="form-control" value="30" min="5">
               </div>
@@ -714,7 +719,8 @@
                       <strong style="font-size:15px;">👤 Add Accounts</strong>
                       <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Go to
                         <strong>Accounts</strong> → Add Account → Paste cookies (from Cookie Editor extension) → Select
-                        device → Generate UA → Save</p>
+                        device → Generate UA → Save
+                      </p>
                     </div>
                   </div>
 
@@ -726,7 +732,8 @@
                     <div>
                       <strong style="font-size:15px;">💬 Create Templates</strong>
                       <p style="margin:4px 0 0 0;color:var(--text-secondary);font-size:13px;">Go to
-                        <strong>Templates</strong> → Select account → Add 3-5 comment templates → Save</p>
+                        <strong>Templates</strong> → Select account → Add 3-5 comment templates → Save
+                      </p>
                     </div>
                   </div>
 
@@ -953,13 +960,15 @@
                     <strong>💬 Comment Delay (seconds)</strong>
                     <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Wait time between comments.
                       <span style="color:#27ae60;">Recommended: 30-120 sec.</span> Too fast = ban risk. Random between
-                      min/max = more human-like.</p>
+                      min/max = more human-like.
+                    </p>
                   </div>
 
                   <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
                     <strong>📊 Max Comments Per Account</strong>
                     <p style="margin:6px 0 0 0;font-size:13px;color:var(--text-secondary);">Daily limit per account.
-                      <span style="color:#27ae60;">Recommended: 20-30.</span> Resets at midnight automatically.</p>
+                      <span style="color:#27ae60;">Recommended: 20-30.</span> Resets at midnight automatically.
+                    </p>
                   </div>
 
                   <div style="padding:14px;background:var(--bg-tertiary,#181825);border-radius:8px;">
