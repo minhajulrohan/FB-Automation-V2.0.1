@@ -1552,7 +1552,8 @@ function initSettings() {
       workingHoursStart: parseInt(document.getElementById('workingHoursStart').value),
       workingHoursEnd: parseInt(document.getElementById('workingHoursEnd').value),
       respectWorkingHours: document.getElementById('respectWorkingHours').checked,
-      automationMode: document.querySelector('input[name="automationMode"]:checked')?.value || 'posts'
+      automationMode: document.querySelector('input[name="automationMode"]:checked')?.value || 'posts',
+      commentsPerGroup: parseInt(document.getElementById('commentsPerGroup').value) || 3
     };
 
     await ipcRenderer.invoke('save-settings', newSettings);
@@ -1580,6 +1581,9 @@ async function loadSettings() {
   document.getElementById('workingHoursStart').value = settings.workingHoursStart;
   document.getElementById('workingHoursEnd').value = settings.workingHoursEnd;
   document.getElementById('respectWorkingHours').checked = settings.respectWorkingHours;
+
+  // Comments Per Group
+  document.getElementById('commentsPerGroup').value = settings.commentsPerGroup || 3;
 
   // Automation mode
   const modeVal = settings.automationMode || 'posts';

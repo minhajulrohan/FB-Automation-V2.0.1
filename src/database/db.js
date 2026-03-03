@@ -150,7 +150,8 @@ class DatabaseManager {
       workingHoursStart: 9,
       workingHoursEnd: 21,
       respectWorkingHours: false,
-      automationMode: 'posts'
+      automationMode: 'posts',
+      commentsPerGroup: 3
     };
 
     const stmt = this.db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
