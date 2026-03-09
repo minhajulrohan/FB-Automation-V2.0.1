@@ -12,7 +12,7 @@ function initThemeSystem() {
   const themeSelect = document.getElementById('themeSelect');
 
   // Load saved theme from localStorage or default to 'default'
-  const savedTheme = localStorage.getItem('selectedTheme') || 'default';
+  const savedTheme = localStorage.getItem('selectedTheme') || 'ocean';
   applyTheme(savedTheme);
   themeSelect.value = savedTheme;
 
