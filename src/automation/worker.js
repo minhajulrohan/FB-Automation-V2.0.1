@@ -918,7 +918,7 @@ class AutomationWorker {
 
             // STEP 2: Edit to full template
             const templateComment = await this.getTemplateComment();
-            const finalComment = `Hi ${templateComment}`;
+            const finalComment = templateComment;
             const editResult = await this.fbAutomator.editLastComment(finalComment);
 
             if (!editResult.success) {
@@ -1054,7 +1054,7 @@ class AutomationWorker {
 
     // STEP 2: Edit comment with template
     const templateComment = await this.getTemplateComment();
-    const finalComment = `Hi ${templateComment}`;
+    const finalComment = templateComment;
 
     this.logger.info(`Step 2: Editing comment to: "${finalComment}"`);
 
@@ -1069,13 +1069,9 @@ class AutomationWorker {
 
     // STEP 3: React to comment
     if (this.settings.autoReact && this.shouldReact()) {
-      const reactionDelay = this.randomDelay(
-        this.settings.reactionDelayMin,
-        this.settings.reactionDelayMax
-      );
-
-      this.logger.info(`Step 3: Waiting ${reactionDelay}s before reacting...`);
-      await this.sleep(reactionDelay * 1000);
+      // Wait exactly 5 seconds after comment before hovering
+      this.logger.info('Step 3: Waiting 5s after comment before reacting...');
+      await this.sleep(5000);
 
       const reaction = this.getRandomReaction();
       const reactResult = await this.fbAutomator.reactToComment(reaction);

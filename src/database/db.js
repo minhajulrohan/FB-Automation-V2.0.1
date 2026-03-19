@@ -423,19 +423,26 @@ class DatabaseManager {
     const deleteStmt = this.db.prepare('DELETE FROM templates WHERE accountId = ?');
     deleteStmt.run(accountId);
 
-    // Insert new templates
+    // Insert new templates (skip any 'first' type)
     const insertStmt = this.db.prepare(`
       INSERT INTO templates (id, accountId, templateType, content)
       VALUES (?, ?, ?, ?)
     `);
 
     for (const template of templates) {
-      insertStmt.run(uuidv4(), accountId, template.type, template.content);
+      if (template.type !== 'first') {
+        insertStmt.run(uuidv4(), accountId, template.type, template.content);
+      }
     }
   }
 
+  deleteFirstTypeTemplates() {
+    const stmt = this.db.prepare("DELETE FROM templates WHERE templateType = 'first'");
+    stmt.run();
+  }
+
   getTemplates(accountId) {
-    const stmt = this.db.prepare('SELECT * FROM templates WHERE accountId = ?');
+    const stmt = this.db.prepare("SELECT * FROM templates WHERE accountId = ? AND templateType != 'first'");
     return stmt.all(accountId);
   }
 

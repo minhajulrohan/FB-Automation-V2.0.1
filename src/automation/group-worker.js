@@ -426,7 +426,7 @@ class GroupAutomationWorker {
 
     // Step 2: Edit with final template
     const template = await this.getTemplateComment();
-    const final = `Hi ${template}`;
+    const final = template;
     await this.fbAutomator.editLastComment(final);
     await this.sleep(this.randomDelay(2, 4) * 1000);
 
@@ -472,10 +472,9 @@ class GroupAutomationWorker {
 
     // Step 5: Success → react করো
     if (this.settings.autoReact && this.shouldReact()) {
-      await this.sleep(this.randomDelay(
-        this.settings.reactionDelayMin,
-        this.settings.reactionDelayMax
-      ) * 1000);
+      // Wait exactly 5 seconds after comment before hovering
+      this.logger.info('[GROUP] Waiting 5s after comment before reacting...');
+      await this.sleep(5000);
       try {
         const reactResult = await this.fbAutomator.reactToComment();
         if (reactResult && reactResult.success) {

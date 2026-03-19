@@ -413,7 +413,7 @@ class FacebookAutomator {
     try {
       this.logger.info('Adding reaction to comment...');
 
-      // Step 1: Find Like button
+      // Step 1: Find Like button on the most recent comment article
       const boundingBox = await this.page.evaluate(() => {
         const articles = Array.from(document.querySelectorAll('div[role="article"]'));
 
@@ -440,35 +440,51 @@ class FacebookAutomator {
 
       // Step 2: Hover with smooth movement
       this.logger.info('Hovering over Like button...');
-      await this.page.mouse.move(
-        boundingBox.x + boundingBox.width / 2,
-        boundingBox.y + boundingBox.height / 2,
-        { steps: 10 }
-      );
+      const cx = boundingBox.x + boundingBox.width / 2;
+      const cy = boundingBox.y + boundingBox.height / 2;
+      await this.page.mouse.move(cx, cy, { steps: 10 });
 
-      // Step 3: Wait 1 second for menu
-      this.logger.info('Waiting 1 second for reaction menu...');
-      await this.randomDelay(1000, 1200);
+      // Step 3: Wait 5 seconds for reaction menu to appear
+      this.logger.info('Waiting 5s for reaction menu...');
+      await this.randomDelay(5000, 5500);
 
-      // Step 4: Click reaction
+      // Step 4: Click reaction using multiple strategies
       const reactionClicked = await this.page.evaluate(() => {
-        const labels = ['Love', 'Care', 'Like', 'Haha', 'Wow', 'ভালোবাসা', 'যত্ন'];
+        // Strategy 1: aria-label match (various languages)
+        const labels = ['Love', 'Care', 'Like', 'Haha', 'Wow', 'Sad', 'Angry',
+          'ভালোবাসা', 'যত্ন', 'লাইক', 'হাহা', 'বাহ', 'দুঃখিত', 'রাগান্বিত'];
         for (const label of labels) {
           const btn = document.querySelector(`div[role="button"][aria-label="${label}"]`);
           if (btn) {
             btn.click();
-            console.log('[REACT] Clicked:', label);
+            console.log('[REACT] Clicked via aria-label:', label);
             return { success: true, reaction: label };
           }
         }
-        const menu = document.querySelector('[role="toolbar"], [role="menu"]');
-        if (menu) {
-          const btns = menu.querySelectorAll('div[role="button"]');
-          if (btns[0]) {
+
+        // Strategy 2: toolbar/menu with buttons
+        const toolbars = document.querySelectorAll('[role="toolbar"], [role="menu"], [role="dialog"]');
+        for (const toolbar of toolbars) {
+          const btns = toolbar.querySelectorAll('div[role="button"], i[role="button"]');
+          if (btns.length > 0) {
             btns[0].click();
+            console.log('[REACT] Clicked via toolbar first button');
             return { success: true, reaction: 'First' };
           }
         }
+
+        // Strategy 3: Find any reaction popup visible on screen
+        const allBtns = Array.from(document.querySelectorAll('div[role="button"]'));
+        const reactionBtn = allBtns.find(btn => {
+          const label = (btn.getAttribute('aria-label') || '').toLowerCase();
+          return ['love', 'care', 'haha', 'wow', 'sad', 'angry'].some(r => label.includes(r));
+        });
+        if (reactionBtn) {
+          reactionBtn.click();
+          console.log('[REACT] Clicked via partial aria-label match');
+          return { success: true, reaction: reactionBtn.getAttribute('aria-label') };
+        }
+
         return { success: false };
       });
 
@@ -478,17 +494,10 @@ class FacebookAutomator {
         return { success: true };
       }
 
-      // Fallback
-      await this.page.evaluate(() => {
-        const articles = Array.from(document.querySelectorAll('div[role="article"]'));
-        for (const article of articles) {
-          const likeSpan = Array.from(article.querySelectorAll('span')).find(el => el.innerText.trim() === 'Like');
-          if (likeSpan) {
-            const likeBtn = likeSpan.closest('div[role="button"]') || likeSpan.parentElement;
-            if (likeBtn) likeBtn.click();
-          }
-        }
-      });
+      // Fallback: just click the Like button directly
+      this.logger.info('Fallback: clicking Like directly...');
+      await this.page.mouse.click(cx, cy);
+      await this.randomDelay(1000, 1500);
       this.logger.info('✅ Like clicked (fallback)');
       return { success: true };
 

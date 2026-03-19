@@ -168,6 +168,7 @@ app.whenReady().then(async () => {
   // License valid - initialize app
   logger = new Logger();
   db = new Database();
+  db.deleteFirstTypeTemplates(); // Remove legacy 'first' type templates
   automationEngine = new AutomationEngine(db, logger, sendToRenderer);
 
   // Setup periodic license check (every hour)
@@ -232,6 +233,7 @@ ipcMain.handle('activate-license', async (event, licenseKey) => {
       // Initialize app
       logger = new Logger();
       db = new Database();
+      db.deleteFirstTypeTemplates(); // Remove legacy 'first' type templates
       automationEngine = new AutomationEngine(db, logger, sendToRenderer);
 
       // Create main window

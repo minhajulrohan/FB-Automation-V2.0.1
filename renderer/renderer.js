@@ -1426,12 +1426,6 @@ function initTemplateManagement() {
 
     const templates = [];
 
-    // First template
-    const firstTemplate = document.getElementById('firstTemplate').value;
-    if (firstTemplate) {
-      templates.push({ type: 'first', content: firstTemplate });
-    }
-
     // Other templates
     const inputs = document.querySelectorAll('.template-input-row textarea');
     inputs.forEach(input => {
@@ -1458,13 +1452,10 @@ async function loadTemplates(accountId) {
   const templates = await ipcRenderer.invoke('get-templates', accountId);
 
   // Clear first
-  document.getElementById('firstTemplate').value = '';
   document.getElementById('templatesList').innerHTML = '';
 
   templates.forEach(template => {
-    if (template.templateType === 'first') {
-      document.getElementById('firstTemplate').value = template.content;
-    } else {
+    if (template.templateType !== 'first') {
       addTemplateInput(template.content);
     }
   });
