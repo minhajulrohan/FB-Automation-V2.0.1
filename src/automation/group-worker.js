@@ -47,10 +47,8 @@ class GroupAutomationWorker {
     this.page = null;
     this.fbAutomator = null;
     this.mutator = new CommentMutator();
-    this.randomStarters = [
-      'Interesting!', 'Nice one!', 'Great!', 'Wow!', 'Cool!',
-      'Awesome!', 'Good!', 'Nice!', 'Love it!', 'Amazing!'
-    ];
+    // randomStarters replaced by dynamic random word generator in getRandomStarter()
+    this.randomStarters = null;
   }
 
   async run() {
@@ -502,12 +500,18 @@ class GroupAutomationWorker {
     this.sendToRenderer('stats-update', this.db.getStats());
   }
   getRandomStarter() {
-    return this.randomStarters[Math.floor(Math.random() * this.randomStarters.length)];
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    const length = Math.floor(Math.random() * 4) + 4; // random length: 4 to 7
+    let word = '';
+    for (let i = 0; i < length; i++) {
+      word += letters[Math.floor(Math.random() * letters.length)];
+    }
+    return word;
   }
 
   async getTemplateComment() {
     const templates = this.db.getTemplates(this.account.id);
-    if (!templates.length) return 'Nice post!';
+    if (!templates.length) return this.getRandomStarter();
     const t = templates[Math.floor(Math.random() * templates.length)];
     return this.mutator.mutateComment(t.content);
   }

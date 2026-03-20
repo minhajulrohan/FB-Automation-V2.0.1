@@ -103,18 +103,8 @@ class AutomationWorker {
     this.mutator = new CommentMutator();
 
     // Random comment starters for initial comment
-    this.randomStarters = [
-      'Interesting!',
-      'Nice one!',
-      'Great!',
-      'Wow!',
-      'Cool!',
-      'Awesome!',
-      'Good!',
-      'Nice!',
-      'Love it!',
-      'Amazing!'
-    ];
+    // Words are dynamically generated from random English letters (4-7 chars each)
+    this.randomStarters = null; // replaced by generateRandomWord()
   }
 
   async run() {
@@ -1151,14 +1141,20 @@ class AutomationWorker {
   }
 
   getRandomStarter() {
-    return this.randomStarters[Math.floor(Math.random() * this.randomStarters.length)];
+    const letters = 'abcdefghijklmnopqrstuvwxyz';
+    const length = Math.floor(Math.random() * 4) + 4; // random length: 4 to 7
+    let word = '';
+    for (let i = 0; i < length; i++) {
+      word += letters[Math.floor(Math.random() * letters.length)];
+    }
+    return word;
   }
 
   async getTemplateComment() {
     const templates = this.db.getTemplates(this.account.id);
 
     if (templates.length === 0) {
-      return 'Nice post!';
+      return this.getRandomStarter();
     }
 
     // Use template and mutate it
