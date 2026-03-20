@@ -151,7 +151,9 @@ class DatabaseManager {
       workingHoursEnd: 21,
       respectWorkingHours: false,
       automationMode: 'posts',
-      commentsPerGroup: 3
+      commentsPerGroup: 3,
+      maxPostAge: 60,
+      autoDeletePendingGroup: true
     };
 
     const stmt = this.db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
@@ -536,8 +538,49 @@ class DatabaseManager {
 
     const settings = {};
     for (const row of rows) {
-      settings[row.key] = JSON.parse(row.value);
+      try {
+        settings[row.key] = JSON.parse(row.value);
+      } catch (e) {
+        settings[row.key] = row.value;
+      }
     }
+
+    // Ensure new settings keys exist for older databases
+    // INSERT OR IGNORE won't add new keys to existing db
+    const requiredDefaults = {
+      maxPostAge: 60,
+      autoDeletePendingGroup: true,
+      groupDelayMin: 30,
+      groupDelayMax: 120,
+      commentsPerGroup: 3,
+      respectWorkingHours: false,
+      workingHoursStart: 9,
+      workingHoursEnd: 21,
+      reactionDelayMin: 2,
+      reactionDelayMax: 8,
+      reactionProbability: 70,
+      reactionTypes: ['LIKE', 'LOVE', 'HAHA', 'WOW'],
+      automationMode: 'posts'
+    };
+
+    let needsSave = false;
+    for (const [key, defaultVal] of Object.entries(requiredDefaults)) {
+      if (settings[key] === undefined || settings[key] === null) {
+        settings[key] = defaultVal;
+        needsSave = true;
+      }
+    }
+
+    // Missing keys গুলো db তে save করো যাতে পরেরবার না লাগে
+    if (needsSave) {
+      const upsert = this.db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
+      for (const [key, defaultVal] of Object.entries(requiredDefaults)) {
+        if (settings[key] === undefined || settings[key] === null) {
+          upsert.run(key, JSON.stringify(defaultVal));
+        }
+      }
+    }
+
     return settings;
   }
 

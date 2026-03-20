@@ -235,174 +235,429 @@ class GroupAutomationWorker {
     } catch (e) { }
   }
 
-  // Scroll করে feed posts load করো
+  // Scroll করে feed posts collect করো
+  // Facebook DOM virtualization এর কারণে top এ ফিরলে posts চলে যায়
+  // তাই scroll করতে করতেই post URLs collect করি
   async scrollToLoadFeed() {
-    this.logger.info('[GROUP] Scrolling to load more posts...');
-    for (let i = 0; i < 10; i++) {
+    this.logger.info('[GROUP] Scrolling to collect post URLs...');
+    this._collectedPostUrls = new Set(); // scroll এর সময় collect করা URLs
+
+    for (let i = 0; i < 20; i++) {
       await this.page.evaluate(() => window.scrollBy(0, 700));
       await this.sleep(900 + Math.random() * 600);
+
+      // প্রতি step এ visible articles থেকে post URLs collect করো
+      const urls = await this.page.evaluate(() => {
+        function isPostHref(href) {
+          if (!href || !href.includes('facebook.com')) return false;
+          if (href.includes('/photos/') || href.includes('/videos/') || href.includes('/events/')) return false;
+          if (href.includes('/about') || href.includes('/members/') || href.includes('/user/')) return false;
+          if (href.includes('/files/') || href.includes('/announcements') || href.includes('/media/')) return false;
+          if (href.includes('/search') || href.includes('/permalink/likes')) return false;
+          return href.includes('/posts/') || href.includes('/permalink/') ||
+            href.includes('story_fbid') || href.includes('pfbid');
+        }
+        function cleanUrl(href) {
+          return href.split('?')[0].split('#')[0].replace(/\/$/, '');
+        }
+        return Array.from(document.querySelectorAll('a[href]'))
+          .filter(a => isPostHref(a.href))
+          .map(a => cleanUrl(a.href))
+          .filter((u, i, arr) => arr.indexOf(u) === i); // unique
+      });
+
+      urls.forEach(u => this._collectedPostUrls.add(u));
+
+      if (i % 5 === 4) {
+        this.logger.info(`[GROUP] Scroll step ${i + 1}/20 — collected: ${this._collectedPostUrls.size} post URLs`);
+      }
     }
+
     await this.sleep(2000);
-    await this.page.evaluate(() => window.scrollTo(0, 0));
-    await this.sleep(1500);
-    this.logger.info('[GROUP] Scroll done, back to top');
+    this.logger.info(`[GROUP] Scroll done — total collected: ${this._collectedPostUrls.size} post URLs`);
   }
 
   async getPostUrlsFromPage() {
-    // Random minute limit — 1 to 59
-    const maxAgeMinutes = Math.floor(Math.random() * 59) + 1;
-    this.logger.info(`[GROUP] Time filter: ≤${maxAgeMinutes}m`);
+    const maxAgeMinutes = (this.settings.maxPostAge && this.settings.maxPostAge > 0)
+      ? this.settings.maxPostAge : 60;
+    this.log('info', `⏱️ Post time filter: ≤${maxAgeMinutes} min`);
 
-    // ── FIX: current page এর group ID বের করো ──
-    // শুধু এই group এর posts নেওয়া হবে, অন্য group এর না
+    // scrollToLoadFeed এ collect করা URLs use করো
+    const collectedUrls = this._collectedPostUrls
+      ? Array.from(this._collectedPostUrls)
+      : [];
+    this.logger.info(`[GROUP] Collected URLs from scroll: ${collectedUrls.length}`);
+
+    // Current group ID বের করো
     const currentGroupId = await this.page.evaluate(() => {
-      const url = window.location.href;
-      // /groups/123456789/ বা /groups/GroupName/ — দুটোই handle করো
-      const m = url.match(/facebook\.com\/groups\/([^/?#]+)/);
+      const m = window.location.href.match(/facebook\.com\/groups\/([^/?#]+)/);
       return m ? m[1] : null;
     });
     this.logger.info(`[GROUP] Current group ID: ${currentGroupId}`);
 
+    // Group ID দিয়ে filter
+    const groupUrls = currentGroupId
+      ? collectedUrls.filter(u => u.includes(`/groups/${currentGroupId}/`) || u.includes(`/groups/${currentGroupId}?`))
+      : collectedUrls;
+
+    // Fallback: group filter এ কিছু না পেলে সব group post নাও
+    const finalUrls = groupUrls.length > 0
+      ? groupUrls
+      : collectedUrls.filter(u => u.includes('/groups/'));
+
+    this.logger.info(`[GROUP] After group filter: ${finalUrls.length} URLs`);
+
+    // Time detection এর জন্য page এ যাওয়া দরকার — কিন্তু virtualization এর কারণে
+    // এখন page এ আর সব posts নেই।
+    // তাই: collected URLs কে সরাসরি return করো, time filter skip করো
+    // (user এর maxPostAge setting অনুযায়ী filter করা যাবে না এই ক্ষেত্রে)
+    if (finalUrls.length > 0) {
+      this.log('info', `✅ ${finalUrls.length} post URL(s) collected from scroll`);
+      this._collectedPostUrls = new Set(); // reset
+      return finalUrls;
+    }
+
+    // Collected URLs নেই — page এ যা আছে তা দিয়ে চেষ্টা করো
+    this.logger.info('[GROUP] No collected URLs, scanning current DOM...');
+    try { await this.page.waitForLoadState('networkidle', { timeout: 5000 }); } catch (e) { }
+    await this.sleep(2000);
+
     const result = await this.page.evaluate((params) => {
       const { maxMins, groupId } = params;
       const logs = [];
+      const nowMs = Date.now();
+      const nowSec = nowMs / 1000;
 
+      // ── Bengali → Arabic ──
       function bnToAr(s) {
-        const m = { '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9' };
-        return (s || '').replace(/[০-৯]/g, c => m[c] || c);
+        const map = { '০': '0', '১': '1', '২': '2', '৩': '3', '৪': '4', '৫': '5', '৬': '6', '৭': '7', '৮': '8', '৯': '9' };
+        return (s || '').replace(/[০-৯]/g, c => map[c] || c);
       }
 
+      // ── Time string → minutes ──
       function toMin(raw) {
         if (!raw) return null;
         const s = bnToAr(raw).trim().toLowerCase();
+
+        // Bengali
         if (/এখন|এখনই|এইমাত্র/.test(raw)) return 0;
         if (/সেকেন্ড/.test(raw)) return 0;
         const bm = bnToAr(raw).match(/(\d+)\s*(মি\.|মিনিট)/);
         if (bm) return +bm[1];
         const bh = bnToAr(raw).match(/(\d+)\s*(ঘণ্টা|ঘন্টা)/);
         if (bh) return +bh[1] * 60;
-        if (/^just\s*now$/.test(s)) return 0;
-        if (/\d+\s*s(ec)?(\s+ago)?$/.test(s)) return 0;
-        if (/(\d+)\s*second/.test(s)) return 0;
-        const mm = s.match(/^(\d+)\s*m(in(ute)?s?)?(\s+ago)?$/);
+
+        // just now / seconds
+        if (/^(just\s*now|now)$/.test(s)) return 0;
+        if (/^\d+\s*s(ec(ond)?s?)?(?:\s+ago)?$/.test(s)) return 0;
+
+        // Short: "4m" "2h" "1d" "3w"
+        const short = s.match(/^(\d+)([smhdw])$/);
+        if (short) {
+          const n = +short[1], u = short[2];
+          if (u === 's') return 0;
+          if (u === 'm') return n;
+          if (u === 'h') return n * 60;
+          if (u === 'd') return n * 1440;
+          if (u === 'w') return n * 10080;
+        }
+
+        // Minutes
+        const mm = s.match(/^(\d+)\s*m(?:in(?:ute)?s?)?(?:\s+ago)?$/);
         if (mm) return +mm[1];
-        const ml = s.match(/(\d+)\s*minute/);
-        if (ml) return +ml[1];
-        const hm = s.match(/^(\d+)\s*h(r|our)?s?(\s+ago)?$/);
-        if (hm) return +hm[1] * 60;
-        const hl = s.match(/(\d+)\s*hour/);
-        if (hl) return +hl[1] * 60;
+
+        // Hours
+        const hh = s.match(/^(\d+)\s*h(?:r|our)?s?(?:\s+ago)?$/);
+        if (hh) return +hh[1] * 60;
+
+        // Days
+        const dd = s.match(/^(\d+)\s*days?(?:\s+ago)?$/);
+        if (dd) return +dd[1] * 1440;
+
+        // Weeks
+        const ww = s.match(/^(\d+)\s*weeks?(?:\s+ago)?$/);
+        if (ww) return +ww[1] * 10080;
+
+        // "about an hour ago" / "an hour ago"
+        if (/^(?:about\s+)?an?\s+hour(?:\s+ago)?$/.test(s)) return 60;
+
+        // "about X hours ago"
+        const abh = s.match(/^(?:about\s+)?(\d+)\s*hours?(?:\s+ago)?$/);
+        if (abh) return +abh[1] * 60;
+
+        // "a day ago"
+        if (/^(?:about\s+)?a\s+day(?:\s+ago)?$/.test(s)) return 1440;
+
+        // "a week ago"
+        if (/^(?:about\s+)?a\s+week(?:\s+ago)?$/.test(s)) return 10080;
+
+        // "yesterday at 3:45 PM"
+        const yest = s.match(/yesterday\s+at\s+(\d+):(\d+)\s*(am|pm)/);
+        if (yest) {
+          let h = +yest[1], mi = +yest[2];
+          if (yest[3] === 'pm' && h !== 12) h += 12;
+          if (yest[3] === 'am' && h === 12) h = 0;
+          const d = new Date(nowMs); d.setDate(d.getDate() - 1); d.setHours(h, mi, 0, 0);
+          return Math.floor((nowMs - d) / 60000);
+        }
+
+        // "Monday at 3:45 PM"
+        const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+        const dayAt = s.match(/^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)\s+at\s+(\d+):(\d+)\s*(am|pm)/);
+        if (dayAt) {
+          const td = days.indexOf(dayAt[1]);
+          let h = +dayAt[2], mi = +dayAt[3];
+          if (dayAt[4] === 'pm' && h !== 12) h += 12;
+          if (dayAt[4] === 'am' && h === 12) h = 0;
+          const now = new Date(nowMs);
+          let diff = now.getDay() - td; if (diff < 0) diff += 7;
+          const d = new Date(nowMs); d.setDate(d.getDate() - diff); d.setHours(h, mi, 0, 0);
+          return Math.floor((nowMs - d) / 60000);
+        }
+
+        // "March 15 at 2:30 PM"
+        const months = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+        const monAt = s.match(/(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:,?\s*(\d{4}))?\s+at\s+(\d+):(\d+)\s*(am|pm)/);
+        if (monAt) {
+          const mo = months.indexOf(monAt[1]), day = +monAt[2], yr = monAt[3] ? +monAt[3] : new Date(nowMs).getFullYear();
+          let h = +monAt[4], mi = +monAt[5];
+          if (monAt[6] === 'pm' && h !== 12) h += 12;
+          if (monAt[6] === 'am' && h === 12) h = 0;
+          return Math.floor((nowMs - new Date(yr, mo, day, h, mi, 0)) / 60000);
+        }
+        return null;
+      }
+
+      // ── aria-labelledby → hidden span text (canvas obfuscation fix) ──
+      function labelledByTime(el) {
+        if (!el) return null;
+        const lblId = el.getAttribute && el.getAttribute('aria-labelledby');
+        if (lblId) {
+          const lbl = document.getElementById(lblId);
+          if (lbl) { const m = toMin((lbl.textContent || '').trim()); if (m !== null) return { age: m, method: 'labelledby' }; }
+        }
+        const children = el.querySelectorAll && el.querySelectorAll('[aria-labelledby]');
+        if (children) {
+          for (const c of children) {
+            const cid = c.getAttribute('aria-labelledby');
+            if (!cid) continue;
+            const lbl = document.getElementById(cid);
+            if (!lbl) continue;
+            const m = toMin((lbl.textContent || '').trim());
+            if (m !== null) return { age: m, method: 'child-labelledby' };
+          }
+        }
+        return null;
+      }
+
+      // ── Full element scan ──
+      function scanForTime(el) {
+        if (!el) return null;
+        // 1. aria-labelledby (canvas obfuscation — most important)
+        const lb = labelledByTime(el); if (lb) return lb;
+        // 2. data-utime
+        const ut = el.getAttribute && el.getAttribute('data-utime');
+        if (ut) { const t = parseInt(ut); if (t > 0) return { age: Math.floor((nowSec - t) / 60), method: 'data-utime' }; }
+        const utc = el.querySelector && el.querySelector('[data-utime]');
+        if (utc) { const t = parseInt(utc.getAttribute('data-utime')); if (t > 0) return { age: Math.floor((nowSec - t) / 60), method: 'data-utime-child' }; }
+        // 3. aria-label self
+        const aria = el.getAttribute && el.getAttribute('aria-label') || '';
+        if (aria) { const m = toMin(aria); if (m !== null) return { age: m, method: 'aria-self' }; }
+        // 4. title self
+        const title = el.getAttribute && el.getAttribute('title') || '';
+        if (title) { const m = toMin(title); if (m !== null) return { age: m, method: 'title-self' }; }
+        // 5. text self (leaf)
+        if ((el.childElementCount || 0) <= 1) {
+          const txt = (el.innerText || el.textContent || '').trim();
+          if (txt && txt.length <= 50) { const m = toMin(txt); if (m !== null) return { age: m, method: 'text-self' }; }
+        }
+        // 6. children scan
+        const allC = el.querySelectorAll && el.querySelectorAll('*') || [];
+        for (const c of allC) {
+          const ca = c.getAttribute && c.getAttribute('aria-label') || '';
+          if (ca && ca.length <= 80) { const m = toMin(ca); if (m !== null) return { age: m, method: 'aria-child' }; }
+          const ct = c.getAttribute && c.getAttribute('title') || '';
+          if (ct && ct.length >= 3 && ct.length <= 60) { const m = toMin(ct); if (m !== null) return { age: m, method: 'title-child' }; }
+          if ((c.childElementCount || 0) <= 1) {
+            const ctxt = (c.innerText || c.textContent || '').trim();
+            if (ctxt && ctxt.length <= 50) { const m = toMin(ctxt); if (m !== null) return { age: m, method: 'text-child' }; }
+          }
+        }
+        return null;
+      }
+
+      // ── React Fiber ──
+      function fiberAge(el) {
+        try {
+          const key = Object.keys(el).find(k => k.startsWith('__reactFiber') || k.startsWith('__reactInternalInstance'));
+          if (!key) return null;
+          let fiber = el[key];
+          for (let i = 0; i < 60 && fiber; i++) {
+            const p = fiber.memoizedProps || fiber.pendingProps || {};
+            for (const f of ['creation_time', 'publish_time', 'story_time', 'created_time', 'timestamp']) {
+              if (typeof p[f] === 'number' && p[f] > 1000000000)
+                return { age: Math.floor((nowSec - p[f]) / 60), method: 'fiber' };
+            }
+            if (p.story?.creation_time) return { age: Math.floor((nowSec - p.story.creation_time) / 60), method: 'fiber-story' };
+            if (p.node?.creation_time) return { age: Math.floor((nowSec - p.node.creation_time) / 60), method: 'fiber-node' };
+            fiber = fiber.return;
+          }
+        } catch (e) { }
         return null;
       }
 
       function isPostHref(href) {
         if (!href || !href.includes('facebook.com')) return false;
-        if (href.includes('/photos/') || href.includes('/videos/')) return false;
-        if (href.includes('/events/') || href.includes('/about')) return false;
-        if (href.includes('/members/') || href.includes('/user/')) return false;
-        if (href.includes('/files/') || href.includes('/announcements')) return false;
-        if (href.includes('/media/') || href.includes('/search')) return false;
-        if (href.includes('/permalink/likes')) return false;
-        return href.includes('/posts/') || href.includes('story_fbid') || href.includes('pfbid');
+        if (href.includes('/photos/') || href.includes('/videos/') || href.includes('/events/')) return false;
+        if (href.includes('/about') || href.includes('/members/') || href.includes('/user/')) return false;
+        if (href.includes('/files/') || href.includes('/announcements') || href.includes('/media/')) return false;
+        if (href.includes('/search') || href.includes('/permalink/likes')) return false;
+        // /posts/ OR /permalink/ (group post format) OR story_fbid OR pfbid
+        return href.includes('/posts/') || href.includes('/permalink/') ||
+          href.includes('story_fbid') || href.includes('pfbid');
       }
 
       function cleanUrl(href) {
         return href.split('?')[0].split('#')[0].replace(/\/$/, '');
       }
 
-      // সব post links collect করো
-      const allLinks = Array.from(document.querySelectorAll('a[href]'))
-        .filter(a => isPostHref(a.href));
-
-      logs.push(`Post-pattern links found: ${allLinks.length}`);
-
-      // ── FIX: শুধু current group এর posts রাখো ──
-      // groupId দিয়ে filter করো যাতে sidebar/notification এর অন্য group এর links না ঢোকে
-      const groupLinks = groupId
-        ? allLinks.filter(a => a.href.includes(`/groups/${groupId}/`))
-        : allLinks;
-
-      logs.push(`Current group (${groupId}) links: ${groupLinks.length}`);
-
-      // Unique base URLs — শুধু current group এর
-      const seen = new Set();
-      const uniqueLinks = [];
-      for (const a of groupLinks) {
-        const url = cleanUrl(a.href);
-        if (!seen.has(url)) {
-          seen.add(url);
-          uniqueLinks.push({ url, el: a });
-          logs.push(`  Found: ${url}`);
-        }
+      // groupId match: numeric id OR slug name
+      function matchesGroup(href) {
+        if (!groupId) return true;
+        return href.includes(`/groups/${groupId}/`) ||
+          href.includes(`/groups/${groupId}?`);
       }
-      logs.push(`Unique post URLs: ${uniqueLinks.length}`);
 
-      // প্রতিটা link এর কাছে time খোঁজো
+      // Loose match: just /groups/ যেকোনো post (groupId filter fail হলে fallback)
+      function isAnyGroupPostHref(href) {
+        return isPostHref(href) && href.includes('/groups/');
+      }
+
+      // ════════════════════════════════════
+      // MAIN: role="article" based
+      // ════════════════════════════════════
+      const allArticles = Array.from(document.querySelectorAll('[role="article"]'));
+      const rootArticles = allArticles.filter(a => {
+        let p = a.parentElement;
+        while (p && p !== document.body) {
+          if (p.getAttribute && p.getAttribute('role') === 'article') return false;
+          p = p.parentElement;
+        }
+        return true;
+      });
+      logs.push(`articles=${rootArticles.length} groupId=${groupId}`);
+
       const posts = [];
-      for (const { url, el } of uniqueLinks) {
-        let ageMinutes = null;
-        let node = el.parentElement;
+      const seenUrls = new Set();
 
-        for (let level = 0; level < 20 && node && node !== document.body; level++) {
-          // data-utime — সবচেয়ে reliable
-          const ut = node.querySelector('[data-utime]');
-          if (ut) {
-            const utime = parseInt(ut.getAttribute('data-utime'));
-            if (utime) { ageMinutes = Math.floor((Date.now() / 1000 - utime) / 60); break; }
+      for (const article of rootArticles) {
+        const allPostLinks = Array.from(article.querySelectorAll('a[href]'))
+          .filter(a => isPostHref(a.href));
+
+        if (!allPostLinks.length) continue;
+
+        // group filter: exact groupId match
+        let groupLinks = groupId ? allPostLinks.filter(a => matchesGroup(a.href)) : allPostLinks;
+
+        // Fallback: groupId match না হলে /groups/ যেকোনো post link নাও
+        if (!groupLinks.length && allPostLinks.length > 0) {
+          const looseLinks = allPostLinks.filter(a => isAnyGroupPostHref(a.href));
+          if (looseLinks.length) {
+            logs.push(`  loose-match: ${looseLinks.length} group post link(s)`);
+            groupLinks = looseLinks;
+          } else {
+            logs.push(`  skip: no group links (${allPostLinks.length} post links, groupId=${groupId})`);
+            continue;
           }
-
-          // aria-label time
-          const ariaEls = node.querySelectorAll('[aria-label]');
-          for (const ar of ariaEls) {
-            const lbl = ar.getAttribute('aria-label') || '';
-            if (/minute|hour|second|ago|just now|মি\.|ঘণ্টা|এখন/i.test(lbl)) {
-              const mins = toMin(lbl);
-              if (mins !== null) { ageMinutes = mins; break; }
-            }
-          }
-          if (ageMinutes !== null) break;
-
-          // innerText candidates
-          const candidates = Array.from(node.querySelectorAll('a, span, abbr')).concat([node]);
-          for (const c of candidates) {
-            if (c.childElementCount > 3) continue;
-            const txt = (c.innerText || c.textContent || '').trim();
-            if (!txt || txt.length > 25) continue;
-            const mins = toMin(txt);
-            if (mins !== null) { ageMinutes = mins; break; }
-          }
-          if (ageMinutes !== null) break;
-
-          node = node.parentElement;
         }
+        if (!groupLinks.length) continue;
 
-        logs.push(`  age=${ageMinutes === null ? '?' : ageMinutes + 'm'} | ${url}`);
-        posts.push({ url, ageMinutes });
+        const url = cleanUrl(groupLinks[0].href);
+        if (seenUrls.has(url)) continue;
+        seenUrls.add(url);
+
+        let res = null;
+        // Strategy 1: Fiber
+        if (!res) res = fiberAge(article);
+        // Strategy 2: Timestamp link (?__cft__ pattern)
+        if (!res) {
+          const tsLinks = allPostLinks.filter(a => a.href.includes('?'));
+          for (const l of tsLinks) { res = scanForTime(l); if (res) break; }
+        }
+        // Strategy 3: All group links
+        if (!res) {
+          for (const l of groupLinks) { res = scanForTime(l); if (res) break; }
+        }
+        // Strategy 4: Article children
+        if (!res) {
+          for (const c of Array.from(article.children)) { res = scanForTime(c); if (res) break; }
+        }
+        // Strategy 5: Full article
+        if (!res) res = scanForTime(article);
+
+        const age = res ? res.age : null;
+        logs.push(`  [${res ? res.method : '?'}] ${age !== null ? age + 'm' : '?'} | ${url}`);
+        posts.push({ url, ageMinutes: age });
       }
 
-      // Recent filter
+      // ════════════════════════════════════
+      // FALLBACK: link scan (articles=0 বা সব filter হলে)
+      // ════════════════════════════════════
+      if (posts.length === 0) {
+        logs.push('FALLBACK: link scan');
+        const allLinks = Array.from(document.querySelectorAll('a[href]')).filter(a => isPostHref(a.href));
+        logs.push(`  total post links: ${allLinks.length}`);
+        const groupLinks = groupId ? allLinks.filter(a => matchesGroup(a.href)) : allLinks;
+        logs.push(`  group-matched links: ${groupLinks.length}`);
+        const seen2 = new Set();
+        for (const a of groupLinks) {
+          const url = cleanUrl(a.href);
+          if (seen2.has(url)) continue;
+          seen2.add(url);
+          let res = null, node = a;
+          for (let lvl = 0; lvl < 20 && node && node !== document.body; lvl++) {
+            res = scanForTime(node);
+            if (res) { res.method = `walk${lvl}-${res.method}`; break; }
+            node = node.parentElement;
+          }
+          const age = res ? res.age : null;
+          logs.push(`  [${res ? res.method : '?'}] ${age !== null ? age + 'm' : '?'} | ${url}`);
+          posts.push({ url, ageMinutes: age });
+        }
+      }
+
+      // Time filter
       const recent = posts.filter(p => p.ageMinutes !== null && p.ageMinutes <= maxMins);
       recent.sort((a, b) => a.ageMinutes - b.ageMinutes);
 
-      // Fallback: time না পেলে সব posts দাও (DOM order = newest first)
-      const fallback = posts.map(p => p.url);
+      // ── IMPORTANT: time detect না হলে সব post দাও ──
+      // Better to comment on an old post than skip entirely
+      const undetected = posts.filter(p => p.ageMinutes === null);
+      const detected = posts.length - undetected.length;
+      logs.push(`RESULT: total=${posts.length} detected=${detected} within_${maxMins}m=${recent.length} undetected=${undetected.length}`);
 
-      return { recent: recent.map(p => p.url), fallback, logs, maxMins, total: posts.length };
+      // recent আছে → recent ফেরত দাও
+      // recent নেই কিন্তু undetected আছে → undetected দাও (time বোঝা যায়নি)
+      // দুটোই নেই → empty
+      const finalList = recent.length > 0 ? recent.map(p => p.url) :
+        undetected.length > 0 ? undetected.map(p => p.url) : [];
+
+      return { urls: finalList, logs, maxMins, total: posts.length, detected, recentCount: recent.length, undetectedCount: undetected.length };
     }, { maxMins: maxAgeMinutes, groupId: currentGroupId });
 
     result.logs.forEach(l => this.logger.info(`[GROUP] ${l}`));
-    this.logger.info(`[GROUP] Total: ${result.total} | Recent(≤${result.maxMins}m): ${result.recent.length}`);
+    this.logger.info(`[GROUP] total=${result.total} detected=${result.detected} recent=${result.recentCount} undetected=${result.undetectedCount}`);
 
-    if (result.recent.length > 0) {
-      this.log('info', `✅ ${result.recent.length} recent post(s) within ${result.maxMins}m`);
-      return result.recent;
+    if (result.urls.length > 0) {
+      if (result.recentCount > 0) {
+        this.log('info', `✅ ${result.recentCount} post(s) within ${result.maxMins}m`);
+      } else {
+        this.log('warning', `⚠️ Time undetected — using ${result.undetectedCount} post(s) anyway`);
+      }
+      return result.urls;
     }
 
-    if (result.fallback.length > 0) {
-      this.log('warning', `⚠️ Time not detected — using all ${result.fallback.length} found post(s)`);
-      return result.fallback;
-    }
-
+    this.log('warning', `⚠️ No posts found on page. Skipping.`);
     return [];
   }
 
@@ -451,7 +706,7 @@ class GroupAutomationWorker {
     // Step 4: Pending বা Declined → delete করো, return
     if (status === 'pending' || status === 'declined') {
       this.log('warning', `⚠️ Comment is ${status} — attempting delete...`);
-      if (this.settings.autoDeletePending) {
+      if (this.settings.autoDeletePendingGroup !== false && this.settings.autoDeletePendingGroup !== undefined ? this.settings.autoDeletePendingGroup : this.settings.autoDeletePending) {
         await this.sleep(2000);
         // facebook.js এর deleteLastComment এ final text পাঠাও
         // সে pending/declined keyword বা text দিয়ে comment খুঁজে delete করে

@@ -1544,7 +1544,9 @@ function initSettings() {
       workingHoursEnd: parseInt(document.getElementById('workingHoursEnd').value),
       respectWorkingHours: document.getElementById('respectWorkingHours').checked,
       automationMode: document.querySelector('input[name="automationMode"]:checked')?.value || 'posts',
-      commentsPerGroup: parseInt(document.getElementById('commentsPerGroup').value) || 3
+      commentsPerGroup: parseInt(document.getElementById('commentsPerGroup').value) || 3,
+      maxPostAge: parseInt(document.getElementById('maxPostAge').value) || 60,
+      autoDeletePendingGroup: document.getElementById('autoDeletePendingGroup').checked
     };
 
     await ipcRenderer.invoke('save-settings', newSettings);
@@ -1575,6 +1577,8 @@ async function loadSettings() {
 
   // Comments Per Group
   document.getElementById('commentsPerGroup').value = settings.commentsPerGroup || 3;
+  document.getElementById('maxPostAge').value = settings.maxPostAge || 60;
+  document.getElementById('autoDeletePendingGroup').checked = settings.autoDeletePendingGroup !== false;
 
   // Automation mode
   const modeVal = settings.automationMode || 'posts';
